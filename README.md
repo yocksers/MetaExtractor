@@ -1,50 +1,86 @@
-MetaExtractor (Metadata Exporter) for Emby
-MetaExtractor is a robust plugin for Emby Server that allows administrators to export metadata and artwork from the internal Emby database directly to media folders (or a custom location). It generates Kodi/Jellyfin compatible NFO files and saves existing artwork images.
-This tool is essential for users who want to backup their metadata, migrate to other media center software, or simply ensure their media assets are stored locally alongside their video files.
-🚀 Key Features
-📦 Metadata & NFO Export
-Comprehensive NFO Generation: Creates standard XML NFO files compatible with Kodi, Jellyfin, and other media managers.
-Granular Control: Toggle specific metadata fields to include or exclude:
-Plots, Taglines, and Outlines
-Cast, Directors, Writers, and Musicians
-Ratings (Community, Critic, MPAA, Certification)
-Tags, Genres, and Studios
-Provider IDs (IMDb, TMDB, TVDB)
-Chapter markers with timestamps
-Collections and Sets
-Smart Overwrite: Choose to overwrite existing NFOs or only create missing ones.
-🎨 Artwork Export
-Image Types: Supports export of Posters, Backdrops, Logos, Banners, Thumbs, Clear Art, and Disc Art.
-High Quality: Exports the exact images currently cached or saved in the Emby database.
-Space Saving: Optional Hardlink mode creates file links instead of copying data (when exporting to a custom path on the same drive), saving massive amounts of disk space.
-⚙️ Advanced Configuration
-Selection Modes:
-Library Mode: Export entire libraries at once.
-Individual Mode: Browse and select specific movies or TV shows to export.
-Custom Export Path: Option to export all metadata to a separate directory structure (mirroring your library) instead of cluttering your media folders.
-Dry Run Mode: "Try before you buy" — simulate an export operation and view a detailed log of exactly what files would be created without writing anything to disk.
-Real-time Logging: View export operations in real-time via the web UI.
-🛠️ Installation
-Download the latest release .dll file.
-Shut down your Emby Server.
-Place the MetaExtractor.dll file into your Emby plugins folder:
-Windows: C:\Users\[User]\AppData\Roaming\Emby-Server\programdata\plugins
-Linux/Docker: /var/lib/emby/plugins (or your mapped volume).
-Restart Emby Server.
-Navigate to Dashboard > Plugins to verify installation.
-📖 Usage
-Once installed, navigate to the plugin configuration page via Dashboard > Plugins > Metadata Exporter.
-1. The Export Tab
-Select Libraries: Choose which libraries (Movies, TV Shows) you want to process.
-Or Select Items: Switch to "Individual items" mode to pick specific media.
-Export Button: Starts the background process. A progress bar will indicate status.
-2. The Settings Tab
-Configure how the export handles files:
-File Options: Enable "Overwrite" if you want to update existing NFOs with fresh data from Emby.
-Dry Run: Check this box to test your settings. No files will be created.
-Custom Path: Enable this to replicate your library structure in a different folder (e.g., D:\MetadataBackup\Movies\Avatar (2009)\...).
-NFO Fields: Check/Uncheck specific data points (e.g., if you don't want "People/Cast" in your NFOs, uncheck Actors/Cast).
-3. The Log Tab
-View a detailed history of the last operation.
-If Dry Run was enabled, this log lists every file that would have been created.
-Download the log to a text file for review.
+# 📦 MetaExtractor (Metadata Exporter) for Emby
+![logo](https://github.com/user-attachments/assets/6c2a31c9-e6a3-422a-8e61-83458a96e257)
+
+![Emby Plugin](https://img.shields.io/badge/Emby-Plugin-green.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Docker-blue)
+![License](https://img.shields.io/badge/License-MIT-orange)
+
+**MetaExtractor** is a powerful plugin for Emby Server that allows administrators to export internal database metadata and cached artwork directly to the file system. It generates standard NFO files (Kodi/Jellyfin compatible) and saves images alongside your media files.
+
+This tool is essential for:
+*   **Backups:** Securing your curated metadata and custom artwork.
+*   **Migration:** Preparing your library for transfer to other media center software (Kodi, Jellyfin, Plex).
+*   **Local Management:** Ensuring your media assets are stored locally rather than locked in the Emby database.
+
+---
+
+## ✨ Features
+
+### 📄 Comprehensive NFO Export
+Generates XML NFO files compatible with most media managers. You have full granular control over what data gets written:
+*   **Basic Info:** Titles, Year, Plot, Taglines, Outlines.
+*   **People:** Cast, Directors, Writers (including Provider IDs).
+*   **Details:** MPAA Ratings, Custom Certifications, Genres, Studios, Tags.
+*   **Technical:** Run times, Dates (Premiered/Added), Chapter markers with timestamps.
+*   **IDs:** Full support for IMDb, TMDB, TVDB, and other provider IDs.
+
+### 🖼️ Artwork Export
+Exports the exact images currently in your Emby database to your media folders:
+*   **Supported Types:** Posters, Backdrops, Logos, Banners, Thumbs, Clear Art, and Disc Art.
+*   **Naming Standards:** Uses standard naming conventions (e.g., `poster.jpg`, `fanart.jpg`, `clearlogo.png`).
+
+### ⚙️ Advanced Functionality
+*   **Library & Item Selection:** Export entire libraries at once (Recursive) or select specific Movies/Shows manually.
+*   **Dry Run Mode:** "Try before you buy." Run a full export simulation to see the logs of what *would* happen without writing a single file to disk.
+*   **Custom Export Path:** Option to export metadata to a mirrored directory structure in a separate location (e.g., a backup drive) instead of your source media folders.
+*   **Hardlinking (Space Saver):** When exporting to a custom path on the same volume, the plugin can use filesystem Hardlinks instead of copying files, saving massive amounts of disk space (Windows only).
+*   **Overwrite Control:** Separate settings to overwrite existing NFOs or Artwork, or only fill in what is missing.
+
+---
+
+## 🚀 Installation
+
+1.  Download the latest `MetaExtractor.dll` from the **[Releases](../../releases)** page.
+2.  Stop your Emby Server.
+3.  Copy the `.dll` file into your Emby Plugins folder:
+    *   **Windows:** `\Users\<User>\AppData\Roaming\Emby-Server\programdata\plugins`
+    *   **Linux:** `/var/lib/emby/plugins`
+    *   **Docker:** `/config/plugins` (depending on your mapping)
+4.  Start Emby Server.
+5.  Go to **Dashboard** -> **Plugins** to verify it is loaded.
+
+---
+
+## 📖 Usage Guide
+
+Once installed, open the plugin configuration page via **Dashboard > Plugins > Metadata Exporter**.
+
+### 1. The Export Tab
+This is where you run the job.
+*   **Selection Mode:** Choose **"Export entire libraries"** for bulk processing or **"Select individual items"** to pick specific media.
+*   **Export Button:** Click to start the process. A progress bar will appear showing the current item being processed.
+*   **Results:** Once finished, a summary will show total items processed and any errors encountered.
+
+### 2. The Settings Tab
+Configure exactly how the plugin behaves.
+*   **Export Types:** Toggle Artwork and/or NFO generation.
+*   **File Options:** 
+    *   *Overwrite:* If unchecked, existing files are skipped (faster).
+    *   *Dry Run:* Enable this to test your settings safely.
+    *   *Custom Path:* Define a separate folder to dump metadata into.
+*   **NFO Fields:** A checklist of every data point available. Uncheck fields you want to exclude from the NFOs.
+
+### 3. The Log Tab
+*   View a real-time log of the export operation.
+*   Essential for checking what files are being created during a **Dry Run**.
+*   **Download Log:** Saves the log to a `.txt` file for debugging.
+
+---
+
+## ⚠️ Disclaimer
+
+While this plugin includes safety features like "Dry Run," **always ensure you have backups** of your media library data before performing bulk file operations, especially if using the "Overwrite" features.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
