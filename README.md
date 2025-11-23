@@ -1,5 +1,6 @@
 # 📦 MetaExtractor (Metadata Exporter) for Emby
-![logo](https://github.com/user-attachments/assets/6c2a31c9-e6a3-422a-8e61-83458a96e257)
+<img width="768" height="512" alt="logo" src="https://github.com/user-attachments/assets/7ecdf039-89e6-4b2c-97c6-4bb46a760987" />
+
 
 ![Emby Plugin](https://img.shields.io/badge/Emby-Plugin-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Docker-blue)
