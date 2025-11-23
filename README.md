@@ -85,3 +85,6 @@ While this plugin includes safety features like "Dry Run," **always ensure you h
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+If you enjoy this plugin and wish to show your appreciation, you can...
+<a href="https://buymeacoffee.com/yockser" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
