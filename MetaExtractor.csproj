@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<AssemblyName>MetaExtractor</AssemblyName>
+		<OutputType>Library</OutputType>
+
+		<LangVersion>10.0</LangVersion>
+		<Nullable>enable</Nullable>
+
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<AssemblyVersion>1.0.1.1</AssemblyVersion>
+		<FileVersion>1.0.1.1</FileVersion>
+		<RootNamespace>MetaExtractor</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Images\logo.jpg" />
+		<EmbeddedResource Include="MetaExtractorConfiguration.html" />
+		<EmbeddedResource Include="MetaExtractorConfiguration.js" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.80" />
+	</ItemGroup>
+
+</Project>

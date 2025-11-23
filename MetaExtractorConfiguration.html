@@ -1,0 +1,690 @@
+<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow" data-horizontal="false" data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-controller="__plugin/MetaExtractorConfigurationjs" data-title="Metadata Exporter">
+    <style>
+        .export-section,
+        .settings-section {
+            padding: 1.5em;
+            background: rgba(0, 0, 0, .2);
+            border-radius: 8px;
+            margin-bottom: 2em;
+        }
+
+            .export-section h2,
+            .settings-section h2 {
+                margin-top: 0;
+                color: #00a4dc;
+            }
+
+        .export-button {
+            background: #00a4dc;
+            color: white;
+            padding: 1em 2em;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+            .export-button:hover {
+                background: #0088b8;
+            }
+
+            .export-button:disabled {
+                background: #555;
+                cursor: not-allowed;
+            }
+
+        .library-list {
+            margin: 1em 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+        }
+
+        .library-item {
+            padding: 0.5em;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .checkboxContainer {
+            margin: 0.5em 0;
+        }
+
+        .item-browser {
+            margin-top: 1em;
+            padding: 1em;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3em;
+        }
+
+        .item-entry {
+            padding: 0.5em;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .browse-button {
+            margin-top: 0.5em;
+            font-size: 0.9em;
+        }
+
+        .item-browser-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5em;
+            padding-bottom: 0.5em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .selection-mode {
+            margin: 1em 0;
+            padding: 1em;
+            background: rgba(0, 120, 215, 0.1);
+            border-radius: 4px;
+            border-left: 3px solid #00a4dc;
+        }
+
+        .selection-mode label {
+            display: block;
+            margin: 0.5em 0;
+        }
+
+        .selected-count {
+            color: #00a4dc;
+            font-weight: bold;
+        }
+
+        .settings-group {
+            margin: 1.5em 0;
+        }
+
+            .settings-group h3 {
+                color: #00a4dc;
+                margin-bottom: 0.8em;
+                font-size: 1.1em;
+            }
+
+        .checkbox-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #resultsContainer {
+            margin-top: 2em;
+            margin-bottom: 2em;
+            display: none;
+        }
+
+            #resultsContainer.visible {
+                display: block;
+            }
+
+        .results-header {
+            padding: 1.5em;
+            border-radius: 5px;
+            margin-bottom: 1em;
+        }
+
+            .results-header.success {
+                background-color: #224922;
+                border-left: 5px solid #3ad83a;
+            }
+
+            .results-header.error {
+                background-color: #492222;
+                border-left: 5px solid #d83a3a;
+            }
+
+            .results-header h3 {
+                margin: 0 0 0.5em 0;
+            }
+
+        .results-meta {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .info-text {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-top: 0.5em;
+        }
+        
+        .dry-run-log {
+            margin-top: 1em;
+            padding: 1em;
+            background: #ffffff;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            border: 1px solid #ddd;
+        }
+        
+        .dry-run-log-entry {
+            padding: 0.3em 0;
+            border-bottom: 1px solid #e0e0e0;
+            color: #000000;
+        }
+        
+        .dry-run-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5em;
+            padding-bottom: 0.5em;
+            border-bottom: 2px solid rgba(0, 164, 220, 0.3);
+        }
+        
+        .dry-run-log-count {
+            color: #00a4dc;
+            font-weight: bold;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-top: 1em;
+            flex-direction: column;
+            gap: 0.5em;
+        }
+
+            .loading-spinner.active {
+                display: flex;
+            }
+
+            .loading-spinner .spinner-content {
+                display: flex;
+                align-items: center;
+                gap: 0.5em;
+            }
+
+            .loading-spinner .progress-text {
+                color: #00a4dc;
+                font-size: 0.9em;
+            }
+
+            .loading-spinner .progress-bar-container {
+                width: 100%;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                height: 20px;
+                overflow: hidden;
+            }
+
+            .loading-spinner .progress-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #00a4dc, #00c8ff);
+                width: 0%;
+                transition: width 0.3s ease;
+                border-radius: 10px;
+            }
+        
+        .tab-navigation {
+            display: flex;
+            gap: 0.5em;
+            margin-bottom: 1.5em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab-button {
+            padding: 0.8em 1.5em;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .tab-button:hover {
+            color: #fff;
+        }
+        
+        .tab-button.active {
+            color: #00a4dc;
+            border-bottom-color: #00a4dc;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .export-log-actions {
+            display: flex;
+            gap: 0.5em;
+            margin-bottom: 1em;
+        }
+        
+        .extract-log-button {
+            background: #4CAF50;
+            color: white;
+            padding: 0.5em 1em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .extract-log-button:hover {
+            background: #45a049;
+        }
+    </style>
+
+    <div class="scrollSlider flex-grow flex-direction-column padded-left padded-right padded-top-page padded-bottom-page">
+        <div class="tab-navigation">
+            <button type="button" class="tab-button active" data-tab="export-tab">
+                <i class="md-icon">cloud_upload</i>
+                <span>Export</span>
+            </button>
+            <button type="button" class="tab-button" data-tab="settings-tab">
+                <i class="md-icon">settings</i>
+                <span>Settings</span>
+            </button>
+            <button type="button" class="tab-button" data-tab="log-tab">
+                <i class="md-icon">article</i>
+                <span>Export Log</span>
+            </button>
+        </div>
+        
+        <form class="MetadataExporterConfigurationForm">
+            <div id="export-tab" class="tab-content active">
+            <div class="export-section">
+                <h2>📦 Export Metadata & Artwork</h2>
+                <p>Export metadata and artwork from Emby's database to your media folders as NFO files and images.</p>
+
+                <div class="settings-group">
+                    <h3>Select Libraries</h3>
+                    <div class="selection-mode">
+                        <label>
+                            <input type="radio" name="selectionMode" value="library" checked />
+                            <span>Export entire libraries</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="selectionMode" value="individual" />
+                            <span>Select individual items</span>
+                        </label>
+                    </div>
+                    
+                    <div id="librarySelectionContainer">
+                        <p class="info-text">Choose which libraries should have their metadata exported:</p>
+                        <div id="libraryList" class="library-list">
+                        </div>
+                    </div>
+
+                    <div id="itemSelectionContainer" style="display: none;">
+                        <p class="info-text">Browse and select individual movies or TV shows:</p>
+                        <div>
+                            <label for="libraryPicker">Library:</label>
+                            <select id="libraryPicker" is="emby-select" style="margin: 0.5em 0;">
+                                <option value="">-- Select a library --</option>
+                            </select>
+                            <button is="emby-button" type="button" class="raised browse-button" id="browseItemsBtn">
+                                <span>Browse Items</span>
+                            </button>
+                        </div>
+                        <div id="itemBrowser" class="item-browser" style="display: none;">
+                            <div class="item-browser-header">
+                                <span>Select items to export:</span>
+                                <span class="selected-count"><span id="selectedItemCount">0</span> items selected</span>
+                            </div>
+                            <div id="itemList" class="item-list">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button is="emby-button" type="button" class="raised button-submit block export-button" id="exportBtn">
+                    <i class="md-icon">save</i>
+                    <span>Export Metadata</span>
+                </button>
+
+                <div id="loadingSpinner" class="loading-spinner">
+                    <div class="spinner-content">
+                        <i class="md-icon">hourglass_empty</i>
+                        <span>Exporting metadata...</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Starting export...</div>
+                </div>
+
+                <div id="resultsContainer">
+                    <div id="resultsHeader" class="results-header">
+                        <h3 id="resultsTitle"></h3>
+                        <div id="resultsStats" class="results-meta"></div>
+                    </div>
+                    <div id="errorList"></div>
+                </div>
+            </div>
+            </div>
+            
+            <div id="settings-tab" class="tab-content">
+            <div class="settings-section">
+                <h2>⚙️ Export Settings</h2>
+
+                <div class="settings-group">
+                    <h3>Export Types</h3>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportArtwork" name="exportArtwork" />
+                                <span>Export Artwork</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportNfo" name="exportNfo" />
+                                <span>Export NFO Files</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>File Options</h3>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="overwriteNfo" name="overwriteNfo" />
+                                <span>Overwrite existing NFO files</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, existing NFO metadata files will be replaced. When disabled, only missing NFO files will be created.</div>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="overwriteArtwork" name="overwriteArtwork" />
+                                <span>Overwrite existing artwork files</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, existing image files will be replaced. When disabled, only missing image files will be created.</div>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="dryRun" name="dryRun" />
+                                <span>Dry Run Mode (Preview only)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, no files will be written. The plugin will only log what would be exported.</div>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="useCustomExportPath" name="useCustomExportPath" />
+                                <span>Export to custom folder</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, files will be exported to a custom folder instead of the media library locations. The folder structure will mimic the original library structure.</div>
+                        </div>
+                        <div class="inputContainer" id="customExportPathContainer" style="display: none; margin-top: 0.5em;">
+                            <label class="inputLabel inputLabelUnfocused" for="customExportPath">Custom Export Folder Path:</label>
+                            <div style="display: flex; gap: 0.5em;">
+                                <input is="emby-input" type="text" id="customExportPath" name="customExportPath" style="flex: 1;" />
+                                <button is="emby-button" type="button" id="browseExportPath" class="raised">
+                                    <span>Browse...</span>
+                                </button>
+                            </div>
+                            <div class="fieldDescription">Enter the full path where files should be exported (e.g., C:\ExportedMetadata or /media/exported)</div>
+                        </div>
+                        <div class="checkboxContainer" id="useHardlinksContainer" style="display: none; margin-top: 0.5em; margin-left: 2em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="useHardlinks" name="useHardlinks" />
+                                <span>Use hardlinks for artwork (saves disk space)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, hardlinks will be created instead of copying artwork files. This saves disk space but only works when both source and destination are on the same filesystem.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Artwork Types</h3>
+                    <p class="info-text">Select which artwork types to export:</p>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportPoster" name="exportPoster" />
+                                <span>Poster</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportBackdrop" name="exportBackdrop" />
+                                <span>Backdrop</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportLogo" name="exportLogo" />
+                                <span>Logo</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportBanner" name="exportBanner" />
+                                <span>Banner</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportThumb" name="exportThumb" />
+                                <span>Thumb</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportArt" name="exportArt" />
+                                <span>Clear Art</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportDisc" name="exportDisc" />
+                                <span>Disc</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>NFO Metadata Fields</h3>
+                    <p class="info-text">Select which metadata fields to include in NFO files:</p>
+                    <div style="margin-bottom: 1em;">
+                        <button is="emby-button" type="button" id="selectAllNfo" class="raised button-submit">
+                            <span>Select All</span>
+                        </button>
+                        <button is="emby-button" type="button" id="selectNoneNfo" class="raised">
+                            <span>Select None</span>
+                        </button>
+                    </div>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeActors" name="nfoIncludeActors" />
+                                <span>Actors/Cast</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeCertification" name="nfoIncludeCertification" />
+                                <span>Certification (Additional to MPAA)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeCollections" name="nfoIncludeCollections" />
+                                <span>Collections/Sets (Movie collections with provider IDs)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeCountries" name="nfoIncludeCountries" />
+                                <span>Countries</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeDates" name="nfoIncludeDates" />
+                                <span>Dates (Premiered, Release Date, Date Added)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeDetailedRatings" name="nfoIncludeDetailedRatings" />
+                                <span>Detailed Ratings Structure (Multiple rating sources)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeDirectors" name="nfoIncludeDirectors" />
+                                <span>Directors</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeFanart" name="nfoIncludeFanart" />
+                                <span>Fanart Section (Image URLs with aspect attributes)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeGenres" name="nfoIncludeGenres" />
+                                <span>Genres</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeMpaa" name="nfoIncludeMpaa" />
+                                <span>MPAA Rating</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludePlot" name="nfoIncludePlot" />
+                                <span>Plot/Overview</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeProviderIds" name="nfoIncludeProviderIds" />
+                                <span>Provider IDs (IMDB, TVDB, TMDB, etc.)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeRating" name="nfoIncludeRating" />
+                                <span>Ratings (Community & Critic)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeRuntime" name="nfoIncludeRuntime" />
+                                <span>Runtime</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeStudios" name="nfoIncludeStudios" />
+                                <span>Studios</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeTagline" name="nfoIncludeTagline" />
+                                <span>Tagline</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeTags" name="nfoIncludeTags" />
+                                <span>Tags</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeTitles" name="nfoIncludeTitles" />
+                                <span>Titles (Title, Original Title, Sort Title)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeTrailers" name="nfoIncludeTrailers" />
+                                <span>Trailers</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeUniqueIds" name="nfoIncludeUniqueIds" />
+                                <span>Unique IDs (uniqueid elements and individual ID fields)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeWriters" name="nfoIncludeWriters" />
+                                <span>Writers/Credits</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeChapters" name="nfoIncludeChapters" />
+                                <span>Chapters (Chapter markers with timestamps)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="nfoIncludeYear" name="nfoIncludeYear" />
+                                <span>Year</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button is="emby-button" type="submit" class="raised button-submit block">
+                    <i class="md-icon">save</i>
+                    <span>Save Settings</span>
+                </button>
+            </div>
+            </div>
+            
+            <div id="log-tab" class="tab-content">
+                <div class="settings-section">
+                    <h2>📋 Export Log</h2>
+                    <p>View detailed logs of export operations. Logs are only stored in memory and not saved to disk unless you export them.</p>
+                    
+                    <div class="export-log-actions">
+                        <button type="button" class="extract-log-button" id="exportLogBtn">
+                            <i class="md-icon">download</i>
+                            <span>Download Log</span>
+                        </button>
+                        <button type="button" class="extract-log-button" id="clearLogBtn" style="background: #f44336;">
+                            <i class="md-icon">delete</i>
+                            <span>Clear Log</span>
+                        </button>
+                    </div>
+                    
+                    <div id="exportLogContainer">
+                        <div class="dry-run-log-header">
+                            <h4 style="margin: 0;">Export Operations</h4>
+                            <span class="dry-run-log-count"><span id="exportLogCount">0</span> operations logged</span>
+                        </div>
+                        <div id="exportLogList" class="dry-run-log">
+                            <div style="color: #666; text-align: center; padding: 2em;">No export operations yet. Run an export to see logs here.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
