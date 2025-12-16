@@ -297,6 +297,10 @@
                 <i class="md-icon">settings</i>
                 <span>Settings</span>
             </button>
+            <button type="button" class="tab-button" data-tab="introskip-tab">
+                <i class="md-icon">skip_next</i>
+                <span>Intro Skip Backup</span>
+            </button>
             <button type="button" class="tab-button" data-tab="log-tab">
                 <i class="md-icon">article</i>
                 <span>Export Log</span>
@@ -499,6 +503,51 @@
                 </div>
 
                 <div class="settings-group">
+                    <h3>Custom Artwork Names</h3>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="chkUseCustomArtworkNames" />
+                            <span>Use Custom Artwork Names</span>
+                        </label>
+                        <div class="fieldDescription">Enable to specify custom file names for exported artwork (default: Emby standard names)</div>
+                    </div>
+                    
+                    <div id="customArtworkNamesContainer" style="display: none; margin-top: 1em; padding: 1em; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1em;">
+                            <div>
+                                <label class="inputLabel" for="txtCustomPosterName">Poster Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomPosterName" placeholder="poster" />
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomFanartName">Fanart Name (base):</label>
+                                <input is="emby-input" type="text" id="txtCustomFanartName" placeholder="fanart" />
+                                <div class="fieldDescription">Additional backdrops will be named: fanart1, fanart2, etc.</div>
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomLogoName">Logo Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomLogoName" placeholder="clearlogo" />
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomBannerName">Banner Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomBannerName" placeholder="banner" />
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomThumbName">Thumb Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomThumbName" placeholder="landscape" />
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomArtName">Clear Art Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomArtName" placeholder="clearart" />
+                            </div>
+                            <div>
+                                <label class="inputLabel" for="txtCustomDiscName">Disc Name:</label>
+                                <input is="emby-input" type="text" id="txtCustomDiscName" placeholder="disc" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
                     <h3>NFO Metadata Fields</h3>
                     <p class="info-text">Select which metadata fields to include in NFO files:</p>
                     <div style="margin-bottom: 1em;">
@@ -650,12 +699,100 @@
                         </div>
                     </div>
                 </div>
-
-                <button is="emby-button" type="submit" class="raised button-submit block">
-                    <i class="md-icon">save</i>
-                    <span>Save Settings</span>
-                </button>
             </div>
+            </div>
+            
+            <div id="introskip-tab" class="tab-content">
+                <div class="settings-section">
+                    <h2>⏭️ Intro Skip Backup & Restore</h2>
+                    <p>Backup and restore intro skip markers (IntroStart, IntroEnd, CreditStart) to/from JSON files. This protects your intro detection data from being lost during library rebuilds or database issues.</p>
+                    
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableIntroSkipBackup" />
+                            <span>Enable Intro Skip Backup/Restore</span>
+                        </label>
+                        <div class="fieldDescription">Enable backup and restore functionality for intro skip markers</div>
+                    </div>
+
+                    <div id="introSkipSettings" style="margin-top: 1.5em;">
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="txtIntroSkipBackupFilePath">Backup File Path</label>
+                            <div style="display: flex; gap: 0.5em; align-items: center;">
+                                <input is="emby-input" type="text" id="txtIntroSkipBackupFilePath" placeholder="D:\Backups\intro_markers.json" style="flex: 1;" />
+                                <button is="emby-button" type="button" class="raised button-submit" id="browseBackupFilePath" style="white-space: nowrap; padding: 0.6em 1em;">
+                                    <span>Browse</span>
+                                </button>
+                            </div>
+                            <div class="fieldDescription">Full path to the backup JSON file including filename (e.g., D:\Backups\intro_markers.json or C:\ProgramData\Emby-Server\intro_markers.json). The file will be created if it doesn't exist, and updated with new/modified episodes when you backup.</div>
+                        </div>
+
+                        <h3 style="margin-top: 2em; color: #00a4dc;">Selection Mode</h3>
+                        
+                        <div class="checkboxContainer">
+                            <label class="emby-radio-label">
+                                <input is="emby-radio" type="radio" name="introSkipSelectionMode" value="library" id="radioIntroSkipLibrary" />
+                                <span>Backup by Library</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-radio-label">
+                                <input is="emby-radio" type="radio" name="introSkipSelectionMode" value="individual" id="radioIntroSkipIndividual" />
+                                <span>Backup Individual Series/Shows</span>
+                            </label>
+                        </div>
+
+                        <div id="introSkipLibrarySelection" style="margin-top: 1em;">
+                            <h4>Select Libraries</h4>
+                            <div id="introSkipLibraryList" class="library-list">
+                                <p style="color: #666;">Loading libraries...</p>
+                            </div>
+                        </div>
+
+                        <div id="introSkipSeriesSelection" style="margin-top: 1em; display: none;">
+                            <h4>Select Series/Shows</h4>
+                            <div class="inputContainer">
+                                <input is="emby-input" type="text" id="seriesSearchBox" placeholder="Search series by name..." style="margin-bottom: 1em;" />
+                            </div>
+                            <div id="introSkipSeriesList" class="library-list" style="max-height: 400px; overflow-y: auto;">
+                                <p style="color: #666;">Loading series...</p>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: 2em; color: #00a4dc;">Restore Options</h3>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkIntroSkipIncludeInNfo" />
+                                <span>Include Markers in NFO Export</span>
+                            </label>
+                            <div class="fieldDescription">Also export intro skip markers to NFO chapter sections (for documentation/backup)</div>
+                        </div>
+
+                        <h3 style="margin-top: 2em; color: #00a4dc;">Backup Actions</h3>
+                        
+                        <div style="margin-bottom: 1em; padding: 1em; background: rgba(0,164,220,0.1); border-radius: 4px;">
+                            <p style="margin: 0; color: #00a4dc;">
+                                <strong>How it works:</strong> When you click "Save & Backup", the selected shows/libraries will be added or updated in your backup file. Click "Restore" to restore intro markers from the backup file to your Emby library.
+                            </p>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1em; margin-top: 1em;">
+                            <button type="button" class="export-button" id="backupIntroSkipBtn">
+                                <i class="md-icon">backup</i>
+                                <span>Save & Backup Selected Shows</span>
+                            </button>
+                            <button type="button" class="export-button" id="restoreIntroSkipBtn">
+                                <i class="md-icon">restore</i>
+                                <span>Restore from Backup File</span>
+                            </button>
+                        </div>
+
+                        <div id="introSkipStatus" style="margin-top: 1em; padding: 1em; background: rgba(0,0,0,0.3); border-radius: 4px; display: none;">
+                            <p id="introSkipStatusText" style="margin: 0;"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div id="log-tab" class="tab-content">

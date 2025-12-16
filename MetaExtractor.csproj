@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<AssemblyName>MetaExtractor</AssemblyName>
 		<OutputType>Library</OutputType>
 
-		<LangVersion>10.0</LangVersion>
+		<LangVersion>12.0</LangVersion>
 		<Nullable>enable</Nullable>
 
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<AssemblyVersion>1.0.1.1</AssemblyVersion>
-		<FileVersion>1.0.1.1</FileVersion>
+		<AssemblyVersion>1.0.4.0</AssemblyVersion>
+		<FileVersion>1.0.4.0</FileVersion>
 		<RootNamespace>MetaExtractor</RootNamespace>
 	</PropertyGroup>
 
@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.80" />
+		<PackageReference Include="MediaBrowser.Server.Core" Version="4.9.1.90" />
 	</ItemGroup>
 
 </Project>

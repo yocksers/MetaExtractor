@@ -24,6 +24,7 @@ namespace MetaExtractor
         private readonly IItemRepository _itemRepository;
         public static Plugin? Instance { get; private set; }
         public static MetadataExportService? MetadataExporter { get; private set; }
+        public static IntroSkipBackupService? IntroSkipBackupService { get; private set; }
         
         public static ExportProgress CurrentProgress { get; set; } = new ExportProgress();
 
@@ -46,7 +47,10 @@ namespace MetaExtractor
         {
             if (configuration is PluginConfiguration newConfig)
             {
-                newConfig.ConfigurationVersion = Guid.NewGuid().ToString();
+                if (string.IsNullOrEmpty(newConfig.ConfigurationVersion))
+                {
+                    newConfig.ConfigurationVersion = Guid.NewGuid().ToString();
+                }
 
                 this.Configuration = newConfig;
 
@@ -76,11 +80,19 @@ namespace MetaExtractor
         public void Run()
         {
             MetadataExporter = new MetadataExportService(_logger, _libraryManager, _providerManager, _itemRepository);
+            IntroSkipBackupService = new IntroSkipBackupService(_logger, _libraryManager, _itemRepository);
             _logger.Info("Metadata Exporter plugin started successfully.");
         }
 
         public void Dispose()
         {
+            CurrentProgress.IsExporting = false;
+            CurrentProgress.CurrentItem = "Plugin stopped";
+            
+            MetadataExporter = null;
+            IntroSkipBackupService = null;
+            Instance = null;
+            
             _logger.Info("Metadata Exporter plugin stopped.");
         }
 

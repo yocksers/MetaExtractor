@@ -6,7 +6,7 @@ namespace MetaExtractor
 {
     public class PluginConfiguration : BasePluginConfiguration
     {
-        public string ConfigurationVersion { get; set; } = Guid.NewGuid().ToString();
+        public string ConfigurationVersion { get; set; } = string.Empty;
         
         public string SelectionMode { get; set; } = "library";
         
@@ -25,6 +25,15 @@ namespace MetaExtractor
         public bool ExportArt { get; set; } = true;
         public bool ExportDisc { get; set; } = true;
         
+        public bool UseCustomArtworkNames { get; set; } = false;
+        public string CustomPosterName { get; set; } = "poster";
+        public string CustomFanartName { get; set; } = "fanart";
+        public string CustomLogoName { get; set; } = "clearlogo";
+        public string CustomBannerName { get; set; } = "banner";
+        public string CustomThumbName { get; set; } = "landscape";
+        public string CustomArtName { get; set; } = "clearart";
+        public string CustomDiscName { get; set; } = "disc";
+        
         public string NfoFormat { get; set; } = "Kodi";
         
         public bool OverwriteNfo { get; set; } = false;
@@ -36,7 +45,13 @@ namespace MetaExtractor
         
         public bool DryRun { get; set; } = false;
         
-        // NFO Metadata Fields
+        private int _maxParallelTasks = 4;
+        public int MaxParallelTasks 
+        { 
+            get => _maxParallelTasks; 
+            set => _maxParallelTasks = Math.Max(1, Math.Min(16, value)); 
+        }
+        
         public bool NfoIncludePlot { get; set; } = true;
         public bool NfoIncludeTitles { get; set; } = true;
         public bool NfoIncludeActors { get; set; } = true;
@@ -60,6 +75,14 @@ namespace MetaExtractor
         public bool NfoIncludeUniqueIds { get; set; } = true;
         public bool NfoIncludeWriters { get; set; } = true;
         public bool NfoIncludeChapters { get; set; } = true;
+        
+        public bool EnableIntroSkipBackup { get; set; } = false;
+        public string IntroSkipSelectionMode { get; set; } = "library"; // library or individual
+        public List<string> IntroSkipLibraryIds { get; set; } = new List<string>();
+        public List<string> IntroSkipSelectedSeriesIds { get; set; } = new List<string>();
+        public string IntroSkipBackupFilePath { get; set; } = string.Empty; // Full path to single backup file
+        public bool IntroSkipIncludeInNfo { get; set; } = true;
+        
         
         public DateTime LastExportTime { get; set; } = DateTime.MinValue;
         public int LastExportedItemsCount { get; set; } = 0;

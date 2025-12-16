@@ -53,9 +53,9 @@ namespace MetaExtractor.Services
                 ProcessedItems = 0,
                 ExportedItems = 0,
                 Percentage = 0,
-                CurrentItem = "Starting export...",
-                ExportLog = new List<string>()
+                CurrentItem = "Starting export..."
             };
+            Plugin.CurrentProgress.ClearLog();
 
             try
             {
@@ -88,13 +88,22 @@ namespace MetaExtractor.Services
 
                     foreach (var itemId in config.SelectedItemIds)
                     {
-                        if (!long.TryParse(itemId, out long itemIdLong))
+                        BaseItem? item = null;
+                        
+                        if (Guid.TryParse(itemId, out Guid itemGuid))
+                        {
+                            item = _libraryManager.GetItemById(itemGuid);
+                        }
+                        else if (long.TryParse(itemId, out long itemIdLong))
+                        {
+                            item = _libraryManager.GetItemById(itemIdLong);
+                        }
+                        else
                         {
                             _logger.Warn($"Invalid item ID format: {itemId}");
                             continue;
                         }
 
-                        var item = _libraryManager.GetItemById(itemIdLong);
                         if (item == null)
                         {
                             _logger.Warn($"Item not found: {itemId}");
@@ -174,45 +183,43 @@ namespace MetaExtractor.Services
 
                 int lastReportedPercent = -1;
                 
-                using (var semaphore = new SemaphoreSlim(4, 4))
+                int maxParallel = config.MaxParallelTasks;
+                
+                Parallel.ForEach(items, new ParallelOptions { CancellationToken = cancellationToken, MaxDegreeOfParallelism = maxParallel }, item =>
                 {
-                    Parallel.ForEach(items, new ParallelOptions { CancellationToken = cancellationToken }, item =>
+                    try
                     {
-                        semaphore.Wait(cancellationToken);
-                        try
+                        if (ExportItemMetadata(item, config, cancellationToken))
                         {
-                            if (ExportItemMetadata(item, config, cancellationToken))
-                            {
-                                Interlocked.Increment(ref exportedCount);
-                            }
-                            
-                            var currentProcessed = Interlocked.Increment(ref processedItems);
-                            
-                            var currentPercent = (int)((currentProcessed / (double)totalItems) * 100);
-                            bool shouldUpdate = (currentPercent != lastReportedPercent && currentPercent % 5 == 0) || 
-                                              (currentProcessed % 10 == 0) || 
-                                              currentProcessed == totalItems;
-                            
-                            if (shouldUpdate)
-                            {
-                                Plugin.CurrentProgress.CurrentItem = item.Name ?? "Unknown";
-                                Plugin.CurrentProgress.ProcessedItems = currentProcessed;
-                                Plugin.CurrentProgress.ExportedItems = exportedCount;
-                                Plugin.CurrentProgress.Percentage = currentPercent;
-                                Interlocked.Exchange(ref lastReportedPercent, currentPercent);
-                            }
+                            Interlocked.Increment(ref exportedCount);
                         }
-                        catch (Exception ex)
+                        
+                        var currentProcessed = Interlocked.Increment(ref processedItems);
+                        
+                        var currentPercent = (int)((currentProcessed / (double)totalItems) * 100);
+                        bool shouldUpdate = (currentPercent != lastReportedPercent && currentPercent % 5 == 0) || 
+                                          (currentProcessed % 10 == 0) || 
+                                          currentProcessed == totalItems;
+                        
+                        if (shouldUpdate)
                         {
-                            _logger.ErrorException($"Error exporting metadata for {item.Name}", ex);
-                            errors.Add($"Failed to export {item.Name}: {ex.Message}");
+                            Plugin.CurrentProgress.CurrentItem = item.Name ?? "Unknown";
+                            Plugin.CurrentProgress.ProcessedItems = currentProcessed;
+                            Plugin.CurrentProgress.ExportedItems = exportedCount;
+                            Plugin.CurrentProgress.Percentage = currentPercent;
+                            Interlocked.Exchange(ref lastReportedPercent, currentPercent);
                         }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
-                    });
-                }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.ErrorException($"Error exporting metadata for {item.Name}", ex);
+                        errors.Add($"Failed to export {item.Name}: {ex.Message}");
+                    }
+                });
 
                 result.ItemsProcessed = exportedCount;
                 result.TotalItems = totalItems;
@@ -254,6 +261,7 @@ namespace MetaExtractor.Services
                 var itemPath = item.Path;
                 if (string.IsNullOrEmpty(itemPath))
                 {
+                    _logger.Debug($"Item {item.Name} has no path");
                     return null;
                 }
                 originalDirectory = Path.GetDirectoryName(itemPath);
@@ -261,6 +269,7 @@ namespace MetaExtractor.Services
             
             if (string.IsNullOrEmpty(originalDirectory))
             {
+                _logger.Debug($"Could not determine directory for {item.Name}");
                 return null;
             }
             
@@ -268,6 +277,12 @@ namespace MetaExtractor.Services
             {
                 try
                 {
+                    if (!Directory.Exists(config.CustomExportPath))
+                    {
+                        _logger.Warn($"Custom export path does not exist: {config.CustomExportPath}");
+                        return originalDirectory;
+                    }
+
                     var libraryPath = GetLibraryPath(item);
                     if (!string.IsNullOrEmpty(libraryPath))
                     {
@@ -275,17 +290,21 @@ namespace MetaExtractor.Services
                         
                         var customDirectory = Path.Combine(config.CustomExportPath, relativePath);
                         
-                        if (!Directory.Exists(customDirectory))
+                        if (!Directory.Exists(customDirectory) && !config.DryRun)
                         {
                             Directory.CreateDirectory(customDirectory);
                         }
                         
                         return customDirectory;
                     }
+                    else
+                    {
+                        _logger.Debug($"Could not determine library path for {item.Name}, using original directory");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorException($"Error creating custom export path for {item.Name}", ex);
+                    _logger.ErrorException($"Error creating custom export path for {item.Name}, using original directory", ex);
                 }
             }
             
@@ -355,9 +374,17 @@ namespace MetaExtractor.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
+                var posterName = config.UseCustomArtworkNames ? config.CustomPosterName : "poster";
+                var fanartName = config.UseCustomArtworkNames ? config.CustomFanartName : "fanart";
+                var logoName = config.UseCustomArtworkNames ? config.CustomLogoName : "clearlogo";
+                var bannerName = config.UseCustomArtworkNames ? config.CustomBannerName : "banner";
+                var thumbName = config.UseCustomArtworkNames ? config.CustomThumbName : "landscape";
+                var artName = config.UseCustomArtworkNames ? config.CustomArtName : "clearart";
+                var discName = config.UseCustomArtworkNames ? config.CustomDiscName : "disc";
+                
                 if (config.ExportPoster && item.HasImage(ImageType.Primary))
                 {
-                    exported |= ExportImage(item, ImageType.Primary, directory, "poster", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Primary, directory, posterName, config, cancellationToken);
                 }
 
                 if (config.ExportBackdrop && item.HasImage(ImageType.Backdrop))
@@ -366,33 +393,33 @@ namespace MetaExtractor.Services
                     for (int i = 0; i < backdropCount; i++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        exported |= ExportImage(item, ImageType.Backdrop, directory, i == 0 ? "backdrop" : $"backdrop{i}", config, cancellationToken, i);
+                        exported |= ExportImage(item, ImageType.Backdrop, directory, i == 0 ? fanartName : $"{fanartName}{i}", config, cancellationToken, i);
                     }
                 }
 
                 if (config.ExportLogo && item.HasImage(ImageType.Logo))
                 {
-                    exported |= ExportImage(item, ImageType.Logo, directory, "logo", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Logo, directory, logoName, config, cancellationToken);
                 }
 
                 if (config.ExportBanner && item.HasImage(ImageType.Banner))
                 {
-                    exported |= ExportImage(item, ImageType.Banner, directory, "banner", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Banner, directory, bannerName, config, cancellationToken);
                 }
 
                 if (config.ExportThumb && item.HasImage(ImageType.Thumb))
                 {
-                    exported |= ExportImage(item, ImageType.Thumb, directory, "thumb", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Thumb, directory, thumbName, config, cancellationToken);
                 }
 
                 if (config.ExportArt && item.HasImage(ImageType.Art))
                 {
-                    exported |= ExportImage(item, ImageType.Art, directory, "clearart", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Art, directory, artName, config, cancellationToken);
                 }
 
                 if (config.ExportDisc && item.HasImage(ImageType.Disc))
                 {
-                    exported |= ExportImage(item, ImageType.Disc, directory, "disc", config, cancellationToken);
+                    exported |= ExportImage(item, ImageType.Disc, directory, discName, config, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -433,7 +460,7 @@ namespace MetaExtractor.Services
                 if (config.DryRun)
                 {
                     var logEntry = $"[DRY RUN] {imageType}: {item.Name} → {targetFile}";
-                    Plugin.CurrentProgress.ExportLog.Add(logEntry);
+                    Plugin.CurrentProgress.AddLogEntry(logEntry);
                     return true;
                 }
 
@@ -449,7 +476,7 @@ namespace MetaExtractor.Services
                         if (CreateHardLink(targetFile, sourceFile, IntPtr.Zero))
                         {
                             var successEntry = $"{imageType} (hardlink): {item.Name} → {targetFile}";
-                            Plugin.CurrentProgress.ExportLog.Add(successEntry);
+                            Plugin.CurrentProgress.AddLogEntry(successEntry);
                             _logger.Debug($"Created hardlink for {imageType} for {item.Name} to {targetFile}");
                             return true;
                         }
@@ -480,7 +507,7 @@ namespace MetaExtractor.Services
                         }
                         
                         var successEntry = $"{imageType}: {item.Name} → {targetFile}";
-                        Plugin.CurrentProgress.ExportLog.Add(successEntry);
+                        Plugin.CurrentProgress.AddLogEntry(successEntry);
                         
                         _logger.Debug($"Exported {imageType} for {item.Name} to {targetFile}");
                         return true;
@@ -544,7 +571,7 @@ namespace MetaExtractor.Services
                 if (config.DryRun)
                 {
                     var logEntry = $"[DRY RUN] NFO: {item.Name} → {nfoPath}";
-                    Plugin.CurrentProgress.ExportLog.Add(logEntry);
+                    Plugin.CurrentProgress.AddLogEntry(logEntry);
                     return true;
                 }
 
@@ -565,12 +592,19 @@ namespace MetaExtractor.Services
                 {
                     if (File.Exists(tempPath))
                     {
-                        try { File.Delete(tempPath); } catch { }
+                        try 
+                        { 
+                            File.Delete(tempPath); 
+                        } 
+                        catch (Exception cleanupEx)
+                        {
+                            _logger.Debug($"Failed to cleanup temp file {tempPath}: {cleanupEx.Message}");
+                        }
                     }
                 }
                 
                 var successEntry = $"NFO: {item.Name} → {nfoPath}";
-                Plugin.CurrentProgress.ExportLog.Add(successEntry);
+                Plugin.CurrentProgress.AddLogEntry(successEntry);
                 
                 _logger.Debug($"Exported NFO for {item.Name} to {nfoPath}");
                 return true;
@@ -871,7 +905,7 @@ namespace MetaExtractor.Services
 
                 if (config.NfoIncludeChapters)
                 {
-                    WriteChapters(writer, item);
+                    WriteChapters(writer, item, config);
                 }
 
                 WriteFileInfo(writer, item);
@@ -1227,7 +1261,6 @@ namespace MetaExtractor.Services
 
         private void WriteFileInfo(XmlWriter writer, BaseItem item)
         {
-            // File info (stream details) to be added in a future update
         }
 
         private void WriteDetailedRatings(XmlWriter writer, BaseItem item)
@@ -1376,16 +1409,14 @@ namespace MetaExtractor.Services
             }
         }
 
-        private void WriteChapters(XmlWriter writer, BaseItem item)
+        private void WriteChapters(XmlWriter writer, BaseItem item, PluginConfiguration config)
         {
             try
             {
-                // Check if item is a video that can have chapters
                 var video = item as Video;
                 if (video == null)
                     return;
 
-                // Get chapter information
                 var chapters = _itemRepository.GetChapters(item);
                 if (chapters == null || chapters.Count == 0)
                     return;
@@ -1401,9 +1432,28 @@ namespace MetaExtractor.Services
                         writer.WriteElementString("name", chapter.Name);
                     }
                     
-                    // Convert ticks to time format (HH:mm:ss.fff)
                     var startTime = TimeSpan.FromTicks(chapter.StartPositionTicks);
                     writer.WriteElementString("starttime", startTime.ToString(@"hh\:mm\:ss\.fff"));
+                    
+                    if (config.IntroSkipIncludeInNfo)
+                    {
+                        try
+                        {
+                            var markerTypeProp = chapter.GetType().GetProperty("MarkerType");
+                            if (markerTypeProp != null && markerTypeProp.CanRead)
+                            {
+                                var markerType = markerTypeProp.GetValue(chapter)?.ToString();
+                                if (!string.IsNullOrEmpty(markerType) && markerType != "None")
+                                {
+                                    writer.WriteElementString("markertype", markerType);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug($"Could not read MarkerType for chapter: {ex.Message}");
+                        }
+                    }
                     
                     writer.WriteEndElement(); // chapter
                 }

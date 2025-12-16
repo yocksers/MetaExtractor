@@ -9,6 +9,7 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
         this.libraries = [];
         this.selectedItems = [];
         this.progressInterval = null;
+        this.saveTimeout = null;
     }
 
     View.prototype.loadConfiguration = function () {
@@ -52,6 +53,17 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
             view.querySelector('#exportArt').checked = self.config.ExportArt !== false;
             view.querySelector('#exportDisc').checked = self.config.ExportDisc !== false;
 
+            view.querySelector('#chkUseCustomArtworkNames').checked = self.config.UseCustomArtworkNames === true;
+            view.querySelector('#txtCustomPosterName').value = self.config.CustomPosterName || 'poster';
+            view.querySelector('#txtCustomFanartName').value = self.config.CustomFanartName || 'fanart';
+            view.querySelector('#txtCustomLogoName').value = self.config.CustomLogoName || 'clearlogo';
+            view.querySelector('#txtCustomBannerName').value = self.config.CustomBannerName || 'banner';
+            view.querySelector('#txtCustomThumbName').value = self.config.CustomThumbName || 'landscape';
+            view.querySelector('#txtCustomArtName').value = self.config.CustomArtName || 'clearart';
+            view.querySelector('#txtCustomDiscName').value = self.config.CustomDiscName || 'disc';
+            
+            self.toggleCustomArtworkNames();
+
             view.querySelector('#nfoIncludePlot').checked = self.config.NfoIncludePlot !== false;
             view.querySelector('#nfoIncludeTitles').checked = self.config.NfoIncludeTitles !== false;
             view.querySelector('#nfoIncludeActors').checked = self.config.NfoIncludeActors !== false;
@@ -75,6 +87,22 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
             view.querySelector('#nfoIncludeUniqueIds').checked = self.config.NfoIncludeUniqueIds !== false;
             view.querySelector('#nfoIncludeWriters').checked = self.config.NfoIncludeWriters !== false;
             view.querySelector('#nfoIncludeChapters').checked = self.config.NfoIncludeChapters !== false; // Default true
+
+            // Intro Skip Backup settings
+            view.querySelector('#chkEnableIntroSkipBackup').checked = self.config.EnableIntroSkipBackup === true;
+            view.querySelector('#txtIntroSkipBackupFilePath').value = self.config.IntroSkipBackupFilePath || '';
+            view.querySelector('#chkIntroSkipIncludeInNfo').checked = self.config.IntroSkipIncludeInNfo !== false;
+
+            var introSkipMode = self.config.IntroSkipSelectionMode || 'library';
+            view.querySelector('input[name="introSkipSelectionMode"][value="' + introSkipMode + '"]').checked = true;
+            self.toggleIntroSkipSelectionMode(introSkipMode);
+
+            view.querySelector('#introSkipSettings').style.display = 
+                self.config.EnableIntroSkipBackup === true ? 'block' : 'none';
+
+            // Load intro skip libraries and series after config and libraries are loaded
+            self.loadIntroSkipLibraries();
+            self.loadIntroSkipSeries();
 
             loading.hide();
         }).catch(function(error) {
@@ -226,6 +254,18 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
         }
     };
 
+    View.prototype.toggleCustomArtworkNames = function () {
+        var self = this;
+        var useCustomNames = view.querySelector('#chkUseCustomArtworkNames').checked;
+        var namesContainer = view.querySelector('#customArtworkNamesContainer');
+        
+        if (useCustomNames) {
+            namesContainer.style.display = 'block';
+        } else {
+            namesContainer.style.display = 'none';
+        }
+    };
+
     View.prototype.submit = function () {
         var self = this;
         loading.show();
@@ -265,6 +305,15 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
         self.config.ExportThumb = view.querySelector('#exportThumb').checked;
         self.config.ExportArt = view.querySelector('#exportArt').checked;
 
+        self.config.UseCustomArtworkNames = view.querySelector('#chkUseCustomArtworkNames').checked;
+        self.config.CustomPosterName = view.querySelector('#txtCustomPosterName').value || 'poster';
+        self.config.CustomFanartName = view.querySelector('#txtCustomFanartName').value || 'fanart';
+        self.config.CustomLogoName = view.querySelector('#txtCustomLogoName').value || 'clearlogo';
+        self.config.CustomBannerName = view.querySelector('#txtCustomBannerName').value || 'banner';
+        self.config.CustomThumbName = view.querySelector('#txtCustomThumbName').value || 'landscape';
+        self.config.CustomArtName = view.querySelector('#txtCustomArtName').value || 'clearart';
+        self.config.CustomDiscName = view.querySelector('#txtCustomDiscName').value || 'disc';
+
         self.config.NfoIncludePlot = view.querySelector('#nfoIncludePlot').checked;
         self.config.NfoIncludeTitles = view.querySelector('#nfoIncludeTitles').checked;
         self.config.NfoIncludeActors = view.querySelector('#nfoIncludeActors').checked;
@@ -289,12 +338,158 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
         self.config.NfoIncludeWriters = view.querySelector('#nfoIncludeWriters').checked;
         self.config.NfoIncludeChapters = view.querySelector('#nfoIncludeChapters').checked;
 
+        self.config.EnableIntroSkipBackup = view.querySelector('#chkEnableIntroSkipBackup').checked;
+        self.config.IntroSkipBackupFilePath = view.querySelector('#txtIntroSkipBackupFilePath').value;
+        self.config.IntroSkipIncludeInNfo = view.querySelector('#chkIntroSkipIncludeInNfo').checked;
+
+        var introSkipSelectionMode = view.querySelector('input[name="introSkipSelectionMode"]:checked').value;
+        self.config.IntroSkipSelectionMode = introSkipSelectionMode;
+
+        if (introSkipSelectionMode === 'library') {
+            var introSkipLibraries = [];
+            self.libraries.forEach(function (library) {
+                var checkbox = view.querySelector('#introskip-lib-' + library.Id);
+                if (checkbox && checkbox.checked) {
+                    introSkipLibraries.push(library.Id);
+                }
+            });
+            self.config.IntroSkipLibraryIds = introSkipLibraries;
+            self.config.IntroSkipSelectedSeriesIds = [];
+        } else {
+            var selectedSeries = [];
+            if (self.allSeries) {
+                self.allSeries.forEach(function (series) {
+                    var checkbox = view.querySelector('#introskip-series-' + series.Id);
+                    if (checkbox && checkbox.checked) {
+                        selectedSeries.push(series.Id);
+                    }
+                });
+            }
+            self.config.IntroSkipSelectedSeriesIds = selectedSeries;
+            self.config.IntroSkipLibraryIds = [];
+        }
+
         ApiClient.updatePluginConfiguration(pluginId, self.config).then(function () {
             loading.hide();
             Dashboard.alert('Settings saved successfully.');
         }).catch(function(error) {
             loading.hide();
             Dashboard.alert('Failed to save settings');
+        });
+    };
+
+    View.prototype.autoSave = function () {
+        var self = this;
+        if (self.saveTimeout) {
+            clearTimeout(self.saveTimeout);
+        }
+        self.saveTimeout = setTimeout(function () {
+            self.submitSilently();
+        }, 1000);
+    };
+
+    View.prototype.submitSilently = function () {
+        var self = this;
+
+        var enabledLibraries = [];
+        self.libraries.forEach(function (library) {
+            var checkbox = view.querySelector('#lib-' + library.Id);
+            if (checkbox && checkbox.checked) {
+                enabledLibraries.push(library.Id);
+            }
+        });
+
+        var selectionMode = view.querySelector('input[name="selectionMode"]:checked').value;
+
+        self.config.SelectionMode = selectionMode;
+        if (selectionMode === 'library') {
+            self.config.EnabledLibraryIds = enabledLibraries;
+            self.config.SelectedItemIds = []; 
+        } else {
+            self.config.EnabledLibraryIds = []; 
+            self.config.SelectedItemIds = self.selectedItems;
+        }
+        self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
+        self.config.ExportNfo = view.querySelector('#exportNfo').checked;
+        self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
+        self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;
+        self.config.DryRun = view.querySelector('#dryRun').checked;
+        self.config.UseCustomExportPath = view.querySelector('#useCustomExportPath').checked;
+        self.config.CustomExportPath = view.querySelector('#customExportPath').value;
+        self.config.UseHardlinks = view.querySelector('#useHardlinks').checked;
+        self.config.ExportPoster = view.querySelector('#exportPoster').checked;
+        self.config.ExportBackdrop = view.querySelector('#exportBackdrop').checked;
+        self.config.ExportLogo = view.querySelector('#exportLogo').checked;
+        self.config.ExportBanner = view.querySelector('#exportBanner').checked;
+        self.config.ExportThumb = view.querySelector('#exportThumb').checked;
+        self.config.ExportArt = view.querySelector('#exportArt').checked;
+
+        self.config.UseCustomArtworkNames = view.querySelector('#chkUseCustomArtworkNames').checked;
+        self.config.CustomPosterName = view.querySelector('#txtCustomPosterName').value || 'poster';
+        self.config.CustomFanartName = view.querySelector('#txtCustomFanartName').value || 'fanart';
+        self.config.CustomLogoName = view.querySelector('#txtCustomLogoName').value || 'clearlogo';
+        self.config.CustomBannerName = view.querySelector('#txtCustomBannerName').value || 'banner';
+        self.config.CustomThumbName = view.querySelector('#txtCustomThumbName').value || 'landscape';
+        self.config.CustomArtName = view.querySelector('#txtCustomArtName').value || 'clearart';
+        self.config.CustomDiscName = view.querySelector('#txtCustomDiscName').value || 'disc';
+
+        self.config.NfoIncludePlot = view.querySelector('#nfoIncludePlot').checked;
+        self.config.NfoIncludeTitles = view.querySelector('#nfoIncludeTitles').checked;
+        self.config.NfoIncludeActors = view.querySelector('#nfoIncludeActors').checked;
+        self.config.NfoIncludeDirectors = view.querySelector('#nfoIncludeDirectors').checked;
+        self.config.NfoIncludeRating = view.querySelector('#nfoIncludeRating').checked;
+        self.config.NfoIncludeYear = view.querySelector('#nfoIncludeYear').checked;
+        self.config.NfoIncludeMpaa = view.querySelector('#nfoIncludeMpaa').checked;
+        self.config.NfoIncludeGenres = view.querySelector('#nfoIncludeGenres').checked;
+        self.config.NfoIncludeStudios = view.querySelector('#nfoIncludeStudios').checked;
+        self.config.NfoIncludeRuntime = view.querySelector('#nfoIncludeRuntime').checked;
+        self.config.NfoIncludeTagline = view.querySelector('#nfoIncludeTagline').checked;
+        self.config.NfoIncludeCountries = view.querySelector('#nfoIncludeCountries').checked;
+        self.config.NfoIncludeProviderIds = view.querySelector('#nfoIncludeProviderIds').checked;
+        self.config.NfoIncludeTags = view.querySelector('#nfoIncludeTags').checked;
+        self.config.NfoIncludeDates = view.querySelector('#nfoIncludeDates').checked;
+        self.config.NfoIncludeTrailers = view.querySelector('#nfoIncludeTrailers').checked;
+        self.config.NfoIncludeDetailedRatings = view.querySelector('#nfoIncludeDetailedRatings').checked;
+        self.config.NfoIncludeCertification = view.querySelector('#nfoIncludeCertification').checked;
+        self.config.NfoIncludeFanart = view.querySelector('#nfoIncludeFanart').checked;
+        self.config.NfoIncludeCollections = view.querySelector('#nfoIncludeCollections').checked;
+        self.config.NfoIncludeUniqueIds = view.querySelector('#nfoIncludeUniqueIds').checked;
+        self.config.NfoIncludeWriters = view.querySelector('#nfoIncludeWriters').checked;
+        self.config.NfoIncludeChapters = view.querySelector('#nfoIncludeChapters').checked;
+
+        self.config.EnableIntroSkipBackup = view.querySelector('#chkEnableIntroSkipBackup').checked;
+        self.config.IntroSkipBackupFilePath = view.querySelector('#txtIntroSkipBackupFilePath').value;
+        self.config.IntroSkipIncludeInNfo = view.querySelector('#chkIntroSkipIncludeInNfo').checked;
+
+        var introSkipSelectionMode = view.querySelector('input[name="introSkipSelectionMode"]:checked').value;
+        self.config.IntroSkipSelectionMode = introSkipSelectionMode;
+
+        if (introSkipSelectionMode === 'library') {
+            var introSkipLibraries = [];
+            self.libraries.forEach(function (library) {
+                var checkbox = view.querySelector('#introskip-lib-' + library.Id);
+                if (checkbox && checkbox.checked) {
+                    introSkipLibraries.push(library.Id);
+                }
+            });
+            self.config.IntroSkipLibraryIds = introSkipLibraries;
+            self.config.IntroSkipSelectedSeriesIds = [];
+        } else {
+            var selectedSeries = [];
+            if (self.allSeries) {
+                self.allSeries.forEach(function (series) {
+                    var checkbox = view.querySelector('#introskip-series-' + series.Id);
+                    if (checkbox && checkbox.checked) {
+                        selectedSeries.push(series.Id);
+                    }
+                });
+            }
+            self.config.IntroSkipSelectedSeriesIds = selectedSeries;
+            self.config.IntroSkipLibraryIds = [];
+        }
+
+        ApiClient.updatePluginConfiguration(pluginId, self.config).catch(function(error) {
+            console.error('Auto-save failed:', error);
         });
     };
 
@@ -626,6 +821,257 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
+    View.prototype.initIntroSkipHandlers = function () {
+        var self = this;
+        var view = this.view;
+
+        // Enable/disable intro skip settings
+        view.querySelector('#chkEnableIntroSkipBackup').addEventListener('change', function () {
+            view.querySelector('#introSkipSettings').style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Selection mode toggle
+        view.querySelectorAll('input[name="introSkipSelectionMode"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                self.toggleIntroSkipSelectionMode(this.value);
+            });
+        });
+
+        // Backup button
+        view.querySelector('#backupIntroSkipBtn').addEventListener('click', function () {
+            self.backupIntroSkip();
+        });
+
+        // Restore button
+        view.querySelector('#restoreIntroSkipBtn').addEventListener('click', function () {
+            self.restoreIntroSkip();
+        });
+
+        // Series search
+        view.querySelector('#seriesSearchBox').addEventListener('input', function () {
+            self.filterSeries(this.value);
+        });
+    };
+
+    View.prototype.loadIntroSkipLibraries = function () {
+        var self = this;
+        var libraryList = view.querySelector('#introSkipLibraryList');
+        libraryList.innerHTML = '';
+
+        self.libraries.forEach(function (library) {
+            var isEnabled = self.config.IntroSkipLibraryIds &&
+                self.config.IntroSkipLibraryIds.indexOf(library.Id) !== -1;
+
+            var item = document.createElement('div');
+            item.className = 'library-item';
+            item.innerHTML =
+                '<label class="emby-checkbox-label">' +
+                '<input is="emby-checkbox" type="checkbox" id="introskip-lib-' + library.Id + '" ' +
+                (isEnabled ? 'checked' : '') + '>' +
+                '<span>' + library.Name + '</span>' +
+                '</label>';
+
+            libraryList.appendChild(item);
+        });
+    };
+
+    View.prototype.loadIntroSkipSeries = function () {
+        var self = this;
+        loading.show();
+
+        fetch(ApiClient.getUrl('/MetadataExporter/IntroSkip/Series'), {
+            headers: { 'X-Emby-Token': ApiClient.accessToken() }
+        }).then(function (response) {
+            return response.json();
+        }).then(function (series) {
+            self.allSeries = series;
+            self.renderIntroSkipSeries(series);
+            loading.hide();
+        }).catch(function (error) {
+            console.error('Error loading series:', error);
+            loading.hide();
+        });
+    };
+
+    View.prototype.renderIntroSkipSeries = function (series) {
+        var self = this;
+        var seriesList = view.querySelector('#introSkipSeriesList');
+        seriesList.innerHTML = '';
+
+        series.forEach(function (s) {
+            var isSelected = self.config.IntroSkipSelectedSeriesIds &&
+                self.config.IntroSkipSelectedSeriesIds.indexOf(s.Id) !== -1;
+
+            var item = document.createElement('div');
+            item.className = 'library-item';
+            item.innerHTML =
+                '<label class="emby-checkbox-label">' +
+                '<input is="emby-checkbox" type="checkbox" id="introskip-series-' + s.Id + '" ' +
+                (isSelected ? 'checked' : '') + '>' +
+                '<span>' + s.Name + (s.Year ? ' (' + s.Year + ')' : '') + '</span>' +
+                '</label>';
+
+            seriesList.appendChild(item);
+        });
+    };
+
+    View.prototype.filterSeries = function (searchTerm) {
+        var self = this;
+        if (!self.allSeries) return;
+
+        var filtered = self.allSeries.filter(function (s) {
+            return s.Name.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1;
+        });
+
+        self.renderIntroSkipSeries(filtered);
+    };
+
+    View.prototype.toggleIntroSkipSelectionMode = function (mode) {
+        var libraryDiv = view.querySelector('#introSkipLibrarySelection');
+        var seriesDiv = view.querySelector('#introSkipSeriesSelection');
+
+        if (mode === 'library') {
+            libraryDiv.style.display = 'block';
+            seriesDiv.style.display = 'none';
+        } else {
+            libraryDiv.style.display = 'none';
+            seriesDiv.style.display = 'block';
+        }
+    };
+
+    View.prototype.backupIntroSkip = function () {
+        var self = this;
+        loading.show();
+
+        var statusDiv = view.querySelector('#introSkipStatus');
+        var statusText = view.querySelector('#introSkipStatusText');
+
+        fetch(ApiClient.getUrl('/MetadataExporter/IntroSkip/Backup'), {
+            method: 'POST',
+            headers: {
+                'X-Emby-Token': ApiClient.accessToken(),
+                'Content-Type': 'application/json'
+            }
+        }).then(function (response) {
+            if (!response.ok) {
+                // Try to parse error message from response
+                return response.text().then(function(text) {
+                    var errorMsg = text || response.statusText;
+                    try {
+                        var json = JSON.parse(text);
+                        errorMsg = json.Message || errorMsg;
+                    } catch (e) {}
+                    throw new Error(errorMsg);
+                });
+            }
+            // Handle 204 No Content (success with no body)
+            if (response.status === 204) {
+                return { Success: true, Message: 'Backup completed successfully. Episodes have been added/updated in the backup file.' };
+            }
+            return response.json();
+        }).then(function (result) {
+            loading.hide();
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = result.Success ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)';
+            statusText.textContent = result.Message || 'Backup completed';
+
+            if (result.Success) {
+                Dashboard.alert(result.Message);
+            } else {
+                Dashboard.alert('Backup failed: ' + result.Message);
+            }
+        }).catch(function (error) {
+            loading.hide();
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = 'rgba(244, 67, 54, 0.2)';
+            statusText.textContent = 'Backup failed: ' + error.message;
+            console.error('Backup error:', error);
+            Dashboard.alert('Backup failed: ' + error.message);
+        });
+    };
+
+    View.prototype.restoreIntroSkip = function () {
+        var self = this;
+
+        // First, let user select a file
+        require(['directorybrowser'], function (directoryBrowser) {
+            var picker = new directoryBrowser();
+            picker.show({
+                callback: function (path) {
+                    if (path) {
+                        picker.close();
+                        
+                        // Ensure path ends with .json
+                        var filePath = path;
+                        if (!path.toLowerCase().endsWith('.json')) {
+                            Dashboard.alert('Please select a valid JSON backup file.');
+                            return;
+                        }
+
+                        // Confirm restore
+                        require(['confirm'], function (confirm) {
+                            confirm('This will restore intro skip markers from "' + filePath + '". Existing markers will be overwritten. Continue?', 'Restore Intro Skip').then(function () {
+                                loading.show();
+
+                                var statusDiv = view.querySelector('#introSkipStatus');
+                                var statusText = view.querySelector('#introSkipStatusText');
+
+                                fetch(ApiClient.getUrl('/MetadataExporter/IntroSkip/Restore'), {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Emby-Token': ApiClient.accessToken(),
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ FilePath: filePath })
+                                }).then(function (response) {
+                                    if (!response.ok) {
+                                        // Try to parse error message from response
+                                        return response.text().then(function(text) {
+                                            var errorMsg = text || response.statusText;
+                                            try {
+                                                var json = JSON.parse(text);
+                                                errorMsg = json.Message || errorMsg;
+                                            } catch (e) {}
+                                            throw new Error(errorMsg);
+                                        });
+                                    }
+                                    // Handle 204 No Content (success with no body)
+                                    if (response.status === 204) {
+                                        return { Success: true, Message: 'Restore completed successfully.' };
+                                    }
+                                    return response.json();
+                                }).then(function (result) {
+                                    loading.hide();
+                                    statusDiv.style.display = 'block';
+                                    statusDiv.style.background = result.Success ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)';
+                                    statusText.textContent = result.Message || 'Restore completed';
+
+                                    if (result.Success) {
+                                        Dashboard.alert(result.Message);
+                                    } else {
+                                        Dashboard.alert('Restore failed: ' + result.Message);
+                                    }
+                                }).catch(function (error) {
+                                    loading.hide();
+                                    statusDiv.style.display = 'block';
+                                    statusDiv.style.background = 'rgba(244, 67, 54, 0.2)';
+                                    statusText.textContent = 'Restore failed: ' + error.message;
+                                    console.error('Restore error:', error);
+                                    Dashboard.alert('Restore failed: ' + error.message);
+                                });
+                            });
+                        });
+                    } else {
+                        picker.close();
+                    }
+                },
+                header: 'Select Backup File to Restore',
+                instruction: 'Choose a JSON backup file containing intro skip markers',
+                includeFiles: true
+            });
+        });
+    };
+
     var view;
 
     return function (viewInstance, params) {
@@ -694,7 +1140,22 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
             instance.toggleCustomPathInput();
         });
 
-        // Browse for custom export path
+        view.querySelector('#chkUseCustomArtworkNames').addEventListener('change', function () {
+            instance.toggleCustomArtworkNames();
+        });
+
+        view.addEventListener('change', function (e) {
+            if (e.target.type === 'checkbox' || e.target.type === 'radio') {
+                instance.autoSave();
+            }
+        });
+
+        view.addEventListener('input', function (e) {
+            if (e.target.type === 'text') {
+                instance.autoSave();
+            }
+        });
+
         view.querySelector('#browseExportPath').addEventListener('click', function () {
             require(['directorybrowser'], function (directoryBrowser) {
                 var picker = new directoryBrowser();
@@ -710,6 +1171,31 @@ define(['loading', 'emby-input', 'emby-checkbox', 'emby-button'], function (load
                 });
             });
         });
+
+        view.querySelector('#browseBackupFilePath').addEventListener('click', function () {
+            require(['directorybrowser'], function (directoryBrowser) {
+                var picker = new directoryBrowser();
+                picker.show({
+                    callback: function (path) {
+                        if (path) {
+                            // Append default filename if just a directory was selected
+                            var filePath = path;
+                            if (!path.toLowerCase().endsWith('.json')) {
+                                filePath = path + (path.endsWith('\\') || path.endsWith('/') ? '' : '\\') + 'intro_markers.json';
+                            }
+                            view.querySelector('#txtIntroSkipBackupFilePath').value = filePath;
+                        }
+                        picker.close();
+                    },
+                    header: 'Select Backup File Location',
+                    instruction: 'Choose a folder for the intro skip backup file',
+                    includeFiles: false
+                });
+            });
+        });
+
+        // Intro Skip Backup handlers
+        instance.initIntroSkipHandlers();
 
         return instance;
     };
