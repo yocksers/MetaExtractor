@@ -17,6 +17,8 @@ namespace MetaExtractor
         public bool ExportArtwork { get; set; } = true;
         public bool ExportNfo { get; set; } = true;
         
+        public bool ExportCollections { get; set; } = true;
+        
         public bool ExportPoster { get; set; } = true;
         public bool ExportBackdrop { get; set; } = true;
         public bool ExportLogo { get; set; } = true;
@@ -76,13 +78,27 @@ namespace MetaExtractor
         public bool NfoIncludeWriters { get; set; } = true;
         public bool NfoIncludeChapters { get; set; } = true;
         
-        public bool EnableIntroSkipBackup { get; set; } = false;
         public string IntroSkipSelectionMode { get; set; } = "library"; // library or individual
         public List<string> IntroSkipLibraryIds { get; set; } = new List<string>();
         public List<string> IntroSkipSelectedSeriesIds { get; set; } = new List<string>();
         public string IntroSkipBackupFilePath { get; set; } = string.Empty; // Full path to single backup file
         public bool IntroSkipIncludeInNfo { get; set; } = true;
         
+        // Per-episode backup mode (saves JSON alongside episodes or in custom folder)
+        public bool IntroSkipSavePerEpisode { get; set; } = false;
+        public bool IntroSkipUseCustomFolder { get; set; } = false; // Save to custom folder instead of next to video files
+        public string IntroSkipCustomFolderPath { get; set; } = string.Empty; // Path for custom folder backups
+        
+        // theTVDB Episode ID matching for portable intro skip data
+        public bool IntroSkipUseTvdbMatching { get; set; } = true; // Use theTVDB episode IDs for matching (more portable)
+        
+        public bool IntroSkipRestoreFromScan { get; set; } = false;
+        public List<string> IntroSkipScanFolderPaths { get; set; } = new List<string>();
+        
+        
+        // Scheduled Task Settings (separate from manual export settings)
+        public bool ScheduledTaskBackupNfo { get; set; } = true;
+        public bool ScheduledTaskBackupIntroSkips { get; set; } = true;
         
         public DateTime LastExportTime { get; set; } = DateTime.MinValue;
         public int LastExportedItemsCount { get; set; } = 0;

@@ -301,6 +301,10 @@
                 <i class="md-icon">skip_next</i>
                 <span>Intro Skip Backup</span>
             </button>
+            <button type="button" class="tab-button" data-tab="scheduledtask-tab">
+                <i class="md-icon">schedule</i>
+                <span>Scheduled Task</span>
+            </button>
             <button type="button" class="tab-button" data-tab="log-tab">
                 <i class="md-icon">article</i>
                 <span>Export Log</span>
@@ -398,6 +402,19 @@
                                 <input is="emby-checkbox" type="checkbox" id="exportNfo" name="exportNfo" />
                                 <span>Export NFO Files</span>
                             </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Item Types to Export</h3>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportCollections" name="exportCollections" />
+                                <span>Export Collections (BoxSets)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, collection metadata and artwork will be exported. Collections/BoxSets contain movies grouped together (e.g., Marvel Cinematic Universe, Star Wars, etc.)</div>
                         </div>
                     </div>
                 </div>
@@ -706,16 +723,54 @@
                 <div class="settings-section">
                     <h2>⏭️ Intro Skip Backup & Restore</h2>
                     <p>Backup and restore intro skip markers (IntroStart, IntroEnd, CreditStart) to/from JSON files. This protects your intro detection data from being lost during library rebuilds or database issues.</p>
+                    <p class="info-text">💡 <strong>Tip:</strong> Configure automatic backups in the <strong>Scheduled Task</strong> tab.</p>
                     
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input is="emby-checkbox" type="checkbox" id="chkEnableIntroSkipBackup" />
-                            <span>Enable Intro Skip Backup/Restore</span>
-                        </label>
-                        <div class="fieldDescription">Enable backup and restore functionality for intro skip markers</div>
-                    </div>
-
                     <div id="introSkipSettings" style="margin-top: 1.5em;">
+                        
+                        <h3 style="margin-top: 1em; color: #00a4dc;">Matching Options</h3>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkIntroSkipUseTvdbMatching" checked />
+                                <span>Use theTVDB Episode ID Matching (Recommended)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, uses theTVDB episode IDs for matching during restore, making intro skip data more portable across different Emby installations or library rebuilds. This is enabled by default for maximum portability.</div>
+                        </div>
+                        
+                        <h3 style="margin-top: 1em; color: #00a4dc;">Backup Mode</h3>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkIntroSkipSavePerEpisode" />
+                                <span>Save Per-Episode (Like NFO Files)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, saves intro skip data as individual JSON files. You can save them alongside each episode (next to video files) or in a custom organized folder structure. When disabled, uses a single centralized backup file.</div>
+                        </div>
+                        
+                        <div id="perEpisodeOptionsSection" style="margin-left: 2em; margin-top: 1em; display: none;">
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="chkIntroSkipUseCustomFolder" />
+                                    <span>Use Custom Folder (Instead of Next to Videos)</span>
+                                </label>
+                                <div class="fieldDescription">Save intro skip files to a custom organized folder structure instead of next to video files. Files will be organized as: SeriesName/Season XX/episode.intro.json</div>
+                            </div>
+                            
+                            <div id="customFolderSection" style="margin-top: 1em; display: none;">
+                                <div class="inputContainer">
+                                    <label class="inputLabel" for="txtIntroSkipCustomFolderPath">Custom Folder Path</label>
+                                    <div style="display: flex; gap: 0.5em; align-items: center;">
+                                        <input is="emby-input" type="text" id="txtIntroSkipCustomFolderPath" placeholder="D:\Backups\IntroSkips" style="flex: 1;" />
+                                        <button is="emby-button" type="button" class="raised button-submit" id="browseCustomFolderPath" style="white-space: nowrap; padding: 0.6em 1em;">
+                                            <span>Browse</span>
+                                        </button>
+                                    </div>
+                                    <div class="fieldDescription">Path to the custom folder where intro skip files will be saved in an organized structure (e.g., D:\Backups\IntroSkips). Each series will get its own subfolder with season folders inside.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="centralizedBackupSection" style="margin-top: 1.5em;">
                         <div class="inputContainer">
                             <label class="inputLabel" for="txtIntroSkipBackupFilePath">Backup File Path</label>
                             <div style="display: flex; gap: 0.5em; align-items: center;">
@@ -725,6 +780,7 @@
                                 </button>
                             </div>
                             <div class="fieldDescription">Full path to the backup JSON file including filename (e.g., D:\Backups\intro_markers.json or C:\ProgramData\Emby-Server\intro_markers.json). The file will be created if it doesn't exist, and updated with new/modified episodes when you backup.</div>
+                        </div>
                         </div>
 
                         <h3 style="margin-top: 2em; color: #00a4dc;">Selection Mode</h3>
@@ -763,6 +819,28 @@
                         
                         <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1em;">
                             <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkIntroSkipRestoreFromScan" />
+                                <span>Restore by Scanning Folders</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, restore will scan specified folder paths for .intro.json files instead of using the centralized backup file. Useful when intro data is saved per-episode.</div>
+                        </div>
+                        
+                        <div id="scanFoldersSection" style="margin-top: 1em; display: none;">
+                            <label class="inputLabel">Folders to Scan</label>
+                            <div id="scanFoldersList" style="margin-bottom: 0.5em;">
+                                <!-- Scan folders will be added here -->
+                            </div>
+                            <div style="display: flex; gap: 0.5em;">
+                                <input is="emby-input" type="text" id="txtNewScanFolder" placeholder="D:\Media\TV Shows" style="flex: 1;" />
+                                <button is="emby-button" type="button" class="raised button-submit" id="addScanFolderBtn" style="white-space: nowrap; padding: 0.6em 1em;">
+                                    <span>Add Folder</span>
+                                </button>
+                            </div>
+                            <div class="fieldDescription">Add root folders to scan recursively for .intro.json files. All subfolders will be scanned.</div>
+                        </div>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1em;">
+                            <label class="emby-checkbox-label">
                                 <input is="emby-checkbox" type="checkbox" id="chkIntroSkipIncludeInNfo" />
                                 <span>Include Markers in NFO Export</span>
                             </label>
@@ -773,7 +851,7 @@
                         
                         <div style="margin-bottom: 1em; padding: 1em; background: rgba(0,164,220,0.1); border-radius: 4px;">
                             <p style="margin: 0; color: #00a4dc;">
-                                <strong>How it works:</strong> When you click "Save & Backup", the selected shows/libraries will be added or updated in your backup file. Click "Restore" to restore intro markers from the backup file to your Emby library.
+                                <strong>How it works:</strong> In centralized mode, selected shows/libraries are added/updated in your backup file. In per-episode mode, each episode gets its own .intro.json file saved alongside it (like NFO files). Click "Restore" to restore intro markers from either the backup file or by scanning folders.
                             </p>
                         </div>
                         
@@ -787,10 +865,138 @@
                                 <span>Restore from Backup File</span>
                             </button>
                         </div>
+                        
+                        <h3 style="margin-top: 2em; color: #00a4dc;">🔄 Server Migration Tools</h3>
+                        
+                        <div style="margin-bottom: 1em; padding: 1em; background: rgba(139,195,74,0.1); border-radius: 4px; border-left: 4px solid #8bc34a;">
+                            <p style="margin: 0; color: #8bc34a;">
+                                <strong>Migration Export/Import:</strong> Use these tools when moving to a new Emby server or reinstalling. Export creates a simplified, portable file with ALL intro markers (no episode selection needed). The export file uses only theTVDB IDs for maximum compatibility across different servers.
+                            </p>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1em; margin-top: 1em;">
+                            <button type="button" class="export-button" id="exportMigrationBtn" style="background: linear-gradient(135deg, #8bc34a 0%, #689f38 100%);">
+                                <i class="md-icon">upload</i>
+                                <span>Export All for Migration</span>
+                            </button>
+                            <button type="button" class="export-button" id="importMigrationBtn" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);">
+                                <i class="md-icon">download</i>
+                                <span>Import Migration File</span>
+                            </button>
+                        </div>
+
+                        <!-- Progress Display -->
+                        <div id="introSkipProgressContainer" style="margin-top: 1.5em; padding: 1.5em; background: rgba(0,0,0,0.3); border-radius: 8px; display: none;">
+                            <h4 style="margin-top: 0; color: #00a4dc; display: flex; align-items: center;">
+                                <i class="md-icon" style="margin-right: 0.5em;">sync</i>
+                                <span id="progressOperation">Processing</span> Intro Skip Data
+                            </h4>
+                            
+                            <div style="margin: 1em 0;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5em;">
+                                    <span id="progressStatus">Initializing...</span>
+                                    <span id="progressPercentage">0%</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); height: 24px; border-radius: 4px; overflow: hidden; position: relative;">
+                                    <div id="progressBar" style="background: linear-gradient(90deg, #00a4dc, #0078d7); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center;">
+                                        <span id="progressBarText" style="font-size: 12px; color: white; font-weight: bold;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1em; margin: 1em 0;">
+                                <div style="background: rgba(0,164,220,0.2); padding: 0.75em; border-radius: 4px;">
+                                    <div style="font-size: 0.85em; opacity: 0.8;">Processed</div>
+                                    <div style="font-size: 1.5em; font-weight: bold;" id="progressProcessed">0</div>
+                                </div>
+                                <div style="background: rgba(0,200,83,0.2); padding: 0.75em; border-radius: 4px;">
+                                    <div style="font-size: 0.85em; opacity: 0.8;">Success</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #00c853;" id="progressSuccess">0</div>
+                                </div>
+                                <div style="background: rgba(255,235,59,0.2); padding: 0.75em; border-radius: 4px;">
+                                    <div style="font-size: 0.85em; opacity: 0.8;">Skipped</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #ffeb3b;" id="progressSkipped">0</div>
+                                </div>
+                                <div style="background: rgba(244,67,54,0.2); padding: 0.75em; border-radius: 4px;">
+                                    <div style="font-size: 0.85em; opacity: 0.8;">Failed</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: #f44336;" id="progressFailed">0</div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1em;">
+                                <div style="font-size: 0.9em; opacity: 0.8;">Current: <span id="progressCurrentSeries">-</span></div>
+                                <div style="font-size: 0.85em; opacity: 0.7; margin-top: 0.25em;" id="progressCurrentItem">-</div>
+                                <div style="font-size: 0.85em; opacity: 0.7; margin-top: 0.5em;">Time Remaining: <span id="progressEta">Calculating...</span></div>
+                            </div>
+                            
+                            <div id="progressLogContainer" style="margin-top: 1em;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5em;">
+                                    <h5 style="margin: 0;">Activity Log</h5>
+                                    <button type="button" id="clearProgressLog" style="background: rgba(255,255,255,0.1); border: none; padding: 0.3em 0.8em; border-radius: 3px; cursor: pointer; font-size: 0.8em;">Clear</button>
+                                </div>
+                                <div id="progressLog" style="background: rgba(0,0,0,0.5); padding: 0.75em; border-radius: 4px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85em;">
+                                </div>
+                            </div>
+                            
+                            <div id="validationErrorsContainer" style="margin-top: 1em; display: none;">
+                                <h5 style="margin: 0.5em 0; color: #ff9800;">⚠️ Validation Warnings</h5>
+                                <div id="validationErrors" style="background: rgba(255,152,0,0.2); padding: 0.75em; border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 0.85em; border-left: 4px solid #ff9800;">
+                                </div>
+                            </div>
+                        </div>
 
                         <div id="introSkipStatus" style="margin-top: 1em; padding: 1em; background: rgba(0,0,0,0.3); border-radius: 4px; display: none;">
                             <p id="introSkipStatusText" style="margin: 0;"></p>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="scheduledtask-tab" class="tab-content">
+                <div class="settings-section">
+                    <h2>🕐 Scheduled Task Configuration</h2>
+                    <p>Configure what the "Metadata Backup" scheduled task will backup automatically. The scheduled task can be configured and run from <strong>Dashboard → Scheduled Tasks</strong>.</p>
+                    
+                    <div style="margin: 2em 0; padding: 1.5em; background: rgba(0,120,215,0.1); border-radius: 8px; border-left: 4px solid #00a4dc;">
+                        <h3 style="margin-top: 0; color: #00a4dc;">What to Backup</h3>
+                        <p class="info-text">Select which types of data the scheduled task should backup. These settings are independent of manual backup operations.</p>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1.5em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkScheduledTaskBackupNfo" />
+                                <span>Backup NFO Files</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, the scheduled task will export metadata to NFO files using the settings configured in the <strong>Export</strong> and <strong>Settings</strong> tabs (libraries, selection mode, NFO format, etc.)</div>
+                        </div>
+                        
+                        <div class="checkboxContainer checkboxContainer-withDescription" style="margin-top: 1em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="chkScheduledTaskBackupIntroSkips" />
+                                <span>Backup Intro Skip Markers</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, the scheduled task will backup intro skip markers using the settings configured in the <strong>Intro Skip Backup</strong> tab (backup mode, TMDB matching, custom folder, etc.)</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 2em 0; padding: 1.5em; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <h3 style="margin-top: 0; color: #4caf50;">📋 How to Use</h3>
+                        <ol style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">
+                            <li>Enable the backup types you want (NFO files and/or intro skips)</li>
+                            <li>Configure the detailed settings for each backup type in their respective tabs</li>
+                            <li>Go to <strong>Dashboard → Scheduled Tasks</strong> in Emby</li>
+                            <li>Find <strong>"Metadata Backup"</strong> in the Library category</li>
+                            <li>Configure the schedule (default: daily at 2 AM) or run manually</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="margin: 2em 0; padding: 1.5em; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid #ff9800;">
+                        <h3 style="margin-top: 0; color: #ff9800;">⚠️ Important Notes</h3>
+                        <ul style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">
+                            <li>If both options are disabled, the scheduled task will exit without doing anything</li>
+                            <li>NFO backups use the library/item selection from the Export tab</li>
+                            <li>Intro skip backups use the library/series selection from the Intro Skip Backup tab</li>
+                            <li>The scheduled task respects all other settings (dry run, overwrite, custom paths, etc.)</li>
+                        </ul>
                     </div>
                 </div>
             </div>

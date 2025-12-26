@@ -27,6 +27,7 @@ namespace MetaExtractor
         public static IntroSkipBackupService? IntroSkipBackupService { get; private set; }
         
         public static ExportProgress CurrentProgress { get; set; } = new ExportProgress();
+        public static IntroSkipProgress IntroSkipProgress { get; set; } = new IntroSkipProgress();
 
         public override string Name => "Metadata Exporter";
         public override string Description => "Exports artwork and metadata from Emby's database to media folders as images and NFO files.";
@@ -73,6 +74,26 @@ namespace MetaExtractor
                 {
                     Name = "MetaExtractorConfigurationjs",
                     EmbeddedResourcePath = GetType().Namespace + ".MetaExtractorConfiguration.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "MetaExtractorConfigurationApi",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.MetaExtractorConfiguration.Api.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "MetaExtractorConfigurationUtils",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.MetaExtractorConfiguration.Utils.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "MetaExtractorConfigurationExport",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.MetaExtractorConfiguration.Export.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "MetaExtractorConfigurationIntroSkip",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.MetaExtractorConfiguration.IntroSkip.js"
                 }
             };
         }

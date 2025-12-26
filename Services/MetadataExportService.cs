@@ -124,6 +124,26 @@ namespace MetaExtractor.Services
                             items.AddRange(seriesItems);
                             _logger.Info($"Added series '{item.Name}', {seriesItems.Count(i => i is Season)} seasons, and {seriesItems.Count(i => i is Episode)} episodes");
                         }
+                        else if (item is BoxSet boxSet)
+                        {
+                            // Add the collection itself for NFO/artwork export
+                            items.Add(item);
+                            
+                            // Also export metadata for all items in the collection
+                            // BoxSet uses LinkedChildren instead of regular Parent relationship
+                            try
+                            {
+                                var children = boxSet.GetRecursiveChildren();
+                                var collectionItems = children.Where(c => c is Movie || c is Series).ToList();
+                                items.AddRange(collectionItems);
+                                _logger.Info($"Added collection '{item.Name}' with {collectionItems.Count} items");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Warn($"Could not get children for collection '{item.Name}': {ex.Message}");
+                                _logger.Info($"Added collection '{item.Name}' with 0 items");
+                            }
+                        }
                         else
                         {
                             items.Add(item);
@@ -159,11 +179,17 @@ namespace MetaExtractor.Services
 
                         _logger.Info($"Processing library: {library.Name} (ID: {libraryId})");
 
+                        var itemTypes = new List<string> { "Movie", "Episode", "Series", "Season" };
+                        if (config.ExportCollections)
+                        {
+                            itemTypes.Add("BoxSet");
+                        }
+
                         var libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
                         {
                             Parent = library,
                             Recursive = true,
-                            IncludeItemTypes = new[] { "Movie", "Episode", "Series", "Season" }
+                            IncludeItemTypes = itemTypes.ToArray()
                         }).ToList();
 
                         _logger.Info($"Found {libraryItems.Count} items in library '{library.Name}'");
@@ -255,6 +281,44 @@ namespace MetaExtractor.Services
             if (item is Series || item is Season)
             {
                 originalDirectory = item.Path;
+            }
+            else if (item is BoxSet boxSet)
+            {
+                // Collections don't have a physical path, use a custom path or the configured path
+                if (config.UseCustomExportPath && !string.IsNullOrEmpty(config.CustomExportPath))
+                {
+                    // Use custom export path with a "Collections" subfolder
+                    originalDirectory = Path.Combine(config.CustomExportPath, "Collections", SanitizeFileName(item.Name));
+                }
+                else
+                {
+                    // Use the library path if available, otherwise use Emby's data path
+                    var libraryPath = GetLibraryPath(item);
+                    if (!string.IsNullOrEmpty(libraryPath))
+                    {
+                        originalDirectory = Path.Combine(libraryPath, "Collections", SanitizeFileName(item.Name));
+                    }
+                    else
+                    {
+                        _logger.Debug($"Collection {item.Name} has no library path, cannot export");
+                        return null;
+                    }
+                }
+                
+                // Ensure the directory exists for collections
+                if (!string.IsNullOrEmpty(originalDirectory) && !Directory.Exists(originalDirectory) && !config.DryRun)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(originalDirectory);
+                        _logger.Debug($"Created directory for collection: {originalDirectory}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"Failed to create directory for collection {item.Name}: {ex.Message}");
+                        return null;
+                    }
+                }
             }
             else
             {
@@ -1464,6 +1528,22 @@ namespace MetaExtractor.Services
             {
                 _logger.Debug($"Could not write chapter information for {item.Name}: {ex.Message}");
             }
+        }
+
+        private string SanitizeFileName(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return "Unknown";
+            }
+
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitized = string.Join("_", fileName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
+            
+            // Also replace some additional characters that might cause issues
+            sanitized = sanitized.Replace(":", "_").Replace("?", "_").Replace("*", "_");
+            
+            return string.IsNullOrWhiteSpace(sanitized) ? "Unknown" : sanitized.TrimEnd('.');
         }
     }
 

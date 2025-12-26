@@ -29,6 +29,22 @@ namespace MetaExtractor.Api
     [Route(ApiRoutes.GetSeries, "GET", Summary = "Gets all TV series for intro skip backup selection.")]
     public class GetSeriesRequest : IReturn<List<SeriesInfo>> { }
 
+    [Route(ApiRoutes.GetIntroSkipProgress, "GET", Summary = "Gets current intro skip backup/restore progress.")]
+    public class GetIntroSkipProgressRequest : IReturn<IntroSkipProgress> { }
+
+    [Route(ApiRoutes.ExportForMigration, "POST", Summary = "Exports all intro skip markers to a simplified portable format for server migration.")]
+    public class ExportForMigrationRequest : IReturn<MigrationExportResult>
+    {
+        public string ExportPath { get; set; } = string.Empty;
+    }
+
+    [Route(ApiRoutes.ImportFromMigration, "POST", Summary = "Imports intro skip markers from a migration export file.")]
+    public class ImportFromMigrationRequest : IReturn<MigrationImportResult>
+    {
+        public string ImportPath { get; set; } = string.Empty;
+        public bool OverwriteExisting { get; set; } = false;
+    }
+
     public class MetadataExporterApiService : IService
     {
         private readonly ILibraryManager _libraryManager;
@@ -117,15 +133,6 @@ namespace MetaExtractor.Api
 
             var config = Plugin.Instance.Configuration;
 
-            if (!config.EnableIntroSkipBackup)
-            {
-                return new BackupResult
-                {
-                    Success = false,
-                    Message = "Intro skip backup is not enabled in settings."
-                };
-            }
-
             if (string.IsNullOrWhiteSpace(config.IntroSkipBackupFilePath))
             {
                 return new BackupResult
@@ -136,6 +143,10 @@ namespace MetaExtractor.Api
             }
 
             var backupFilePath = config.IntroSkipBackupFilePath;
+            var savePerEpisode = config.IntroSkipSavePerEpisode;
+            var useCustomFolder = config.IntroSkipUseCustomFolder;
+            var customFolderPath = config.IntroSkipCustomFolderPath ?? string.Empty;
+            var useTvdbMatching = config.IntroSkipUseTvdbMatching;
             
             var libraryIds = config.IntroSkipSelectionMode == "individual" 
                 ? new List<string>() 
@@ -158,6 +169,10 @@ namespace MetaExtractor.Api
                 libraryIds, 
                 seriesIds, 
                 backupFilePath,
+                savePerEpisode,
+                useCustomFolder,
+                customFolderPath,
+                useTvdbMatching,
                 CancellationToken.None);
         }
 
@@ -183,15 +198,30 @@ namespace MetaExtractor.Api
 
             var config = Plugin.Instance.Configuration;
 
-            if (!config.EnableIntroSkipBackup)
+            var restoreFromScan = config.IntroSkipRestoreFromScan;
+            var scanFolderPaths = config.IntroSkipScanFolderPaths ?? new List<string>();
+            
+            if (restoreFromScan)
             {
-                return new RestoreResult
+                // Restore by scanning folders for .intro.json files
+                if (scanFolderPaths.Count == 0)
                 {
-                    Success = false,
-                    Message = "Intro skip backup is not enabled in settings."
-                };
+                    return new RestoreResult
+                    {
+                        Success = false,
+                        Message = "No scan folders configured. Please add folders to scan in settings."
+                    };
+                }
+                
+                return await Plugin.IntroSkipBackupService.RestoreIntroSkipData(
+                    string.Empty, 
+                    true, 
+                    scanFolderPaths, 
+                    CancellationToken.None);
             }
-
+            else
+            {
+                // Restore from centralized backup file
             if (string.IsNullOrWhiteSpace(request.FilePath))
             {
                 return new RestoreResult
@@ -210,7 +240,12 @@ namespace MetaExtractor.Api
                 };
             }
 
-            return await Plugin.IntroSkipBackupService.RestoreIntroSkipData(request.FilePath, true, CancellationToken.None);
+                return await Plugin.IntroSkipBackupService.RestoreIntroSkipData(
+                    request.FilePath, 
+                    true, 
+                    null, 
+                    CancellationToken.None);
+            }
         }
 
         public List<SeriesInfo> Get(GetSeriesRequest request)
@@ -233,6 +268,57 @@ namespace MetaExtractor.Api
             .ToList();
 
             return series;
+        }
+
+        public IntroSkipProgress Get(GetIntroSkipProgressRequest request)
+        {
+            return Plugin.IntroSkipProgress;
+        }
+
+        public async Task<MigrationExportResult> Post(ExportForMigrationRequest request)
+        {
+            if (Plugin.Instance == null || Plugin.IntroSkipBackupService == null)
+            {
+                return new MigrationExportResult
+                {
+                    Success = false,
+                    Message = "Plugin or service not initialized"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ExportPath))
+            {
+                return new MigrationExportResult
+                {
+                    Success = false,
+                    Message = "Export path is required"
+                };
+            }
+
+            return await Plugin.IntroSkipBackupService.ExportForMigration(request.ExportPath, CancellationToken.None);
+        }
+
+        public async Task<MigrationImportResult> Post(ImportFromMigrationRequest request)
+        {
+            if (Plugin.Instance == null || Plugin.IntroSkipBackupService == null)
+            {
+                return new MigrationImportResult
+                {
+                    Success = false,
+                    Message = "Plugin or service not initialized"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ImportPath))
+            {
+                return new MigrationImportResult
+                {
+                    Success = false,
+                    Message = "Import path is required"
+                };
+            }
+
+            return await Plugin.IntroSkipBackupService.ImportFromMigration(request.ImportPath, request.OverwriteExisting, CancellationToken.None);
         }
     }
 
