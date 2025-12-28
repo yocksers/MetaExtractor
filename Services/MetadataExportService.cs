@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -31,6 +32,11 @@ namespace MetaExtractor.Services
 
         [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+        private static bool IsWindows()
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
 
         public MetadataExportService(ILogger logger, ILibraryManager libraryManager, IProviderManager providerManager, IItemRepository itemRepository)
         {
@@ -185,12 +191,29 @@ namespace MetaExtractor.Services
                             itemTypes.Add("BoxSet");
                         }
 
-                        var libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
+                        List<BaseItem> libraryItems;
+                        
+                        // Special handling for Collections library - BoxSets don't use standard Parent relationship
+                        if (library is MediaBrowser.Controller.Entities.CollectionFolder collectionFolder && 
+                            collectionFolder.CollectionType == "boxsets")
                         {
-                            Parent = library,
-                            Recursive = true,
-                            IncludeItemTypes = itemTypes.ToArray()
-                        }).ToList();
+                            _logger.Debug($"Library '{library.Name}' is a Collections library, using special query");
+                            // Query all BoxSets without Parent filter for Collections library
+                            libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
+                            {
+                                IncludeItemTypes = new[] { "BoxSet" },
+                                Recursive = true
+                            }).ToList();
+                        }
+                        else
+                        {
+                            libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
+                            {
+                                Parent = library,
+                                Recursive = true,
+                                IncludeItemTypes = itemTypes.ToArray()
+                            }).ToList();
+                        }
 
                         _logger.Info($"Found {libraryItems.Count} items in library '{library.Name}'");
                         items.AddRange(libraryItems);
@@ -247,10 +270,21 @@ namespace MetaExtractor.Services
                     }
                 });
 
-                result.ItemsProcessed = exportedCount;
+                result.ItemsProcessed = processedItems;
                 result.TotalItems = totalItems;
                 result.Errors = errors.ToList();
-                result.Message = $"Successfully exported metadata for {exportedCount} items";
+                if (exportedCount == 0)
+                {
+                    result.Message = $"Processed {processedItems} item(s), but no files were exported. All files may already exist (check overwrite settings) or items may not have metadata/artwork to export.";
+                }
+                else if (exportedCount < processedItems)
+                {
+                    result.Message = $"Successfully exported metadata for {exportedCount} out of {processedItems} item(s). {processedItems - exportedCount} item(s) were skipped (files already exist or no data to export).";
+                }
+                else
+                {
+                    result.Message = $"Successfully exported metadata for {exportedCount} item(s).";
+                }
                 _logger.Info(result.Message);
             }
             catch (OperationCanceledException)
@@ -412,6 +446,8 @@ namespace MetaExtractor.Services
             if (string.IsNullOrEmpty(directory))
             {
                 _logger.Debug($"Could not determine export directory for {item.Name}");
+                var skipEntry = $"Skipped (no export directory): {item.Name}";
+                Plugin.CurrentProgress.AddLogEntry(skipEntry);
                 return false;
             }
 
@@ -425,6 +461,12 @@ namespace MetaExtractor.Services
             if (config.ExportNfo)
             {
                 exported |= ExportNfo(item, directory, config, cancellationToken);
+            }
+
+            if (!exported)
+            {
+                var skipEntry = $"Skipped (no metadata/artwork to export or all files exist): {item.Name}";
+                Plugin.CurrentProgress.AddLogEntry(skipEntry);
             }
 
             return exported;
@@ -518,6 +560,8 @@ namespace MetaExtractor.Services
                 if (File.Exists(targetFile) && !config.OverwriteArtwork)
                 {
                     _logger.Debug($"Skipping {imageType} for {item.Name} - file already exists");
+                    var skipEntry = $"{imageType} (skipped - already exists): {item.Name}";
+                    Plugin.CurrentProgress.AddLogEntry(skipEntry);
                     return false;
                 }
 
@@ -530,28 +574,35 @@ namespace MetaExtractor.Services
 
                 if (config.UseCustomExportPath && config.UseHardlinks)
                 {
-                    try
+                    if (!IsWindows())
                     {
-                        if (File.Exists(targetFile))
-                        {
-                            File.Delete(targetFile);
-                        }
-                        
-                        if (CreateHardLink(targetFile, sourceFile, IntPtr.Zero))
-                        {
-                            var successEntry = $"{imageType} (hardlink): {item.Name} → {targetFile}";
-                            Plugin.CurrentProgress.AddLogEntry(successEntry);
-                            _logger.Debug($"Created hardlink for {imageType} for {item.Name} to {targetFile}");
-                            return true;
-                        }
-                        else
-                        {
-                            _logger.Debug($"Hardlink creation failed, falling back to copy for {targetFile}");
-                        }
+                        _logger.Debug("Hardlinks are only supported on Windows. Falling back to copy.");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _logger.Debug($"Hardlink creation failed ({ex.Message}), falling back to copy for {targetFile}");
+                        try
+                        {
+                            if (File.Exists(targetFile))
+                            {
+                                File.Delete(targetFile);
+                            }
+                            
+                            if (CreateHardLink(targetFile, sourceFile, IntPtr.Zero))
+                            {
+                                var successEntry = $"{imageType} (hardlink): {item.Name} → {targetFile}";
+                                Plugin.CurrentProgress.AddLogEntry(successEntry);
+                                _logger.Debug($"Created hardlink for {imageType} for {item.Name} to {targetFile}");
+                                return true;
+                            }
+                            else
+                            {
+                                _logger.Debug($"Hardlink creation failed, falling back to copy for {targetFile}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Debug($"Hardlink creation failed ({ex.Message}), falling back to copy for {targetFile}");
+                        }
                     }
                 }
 
@@ -623,6 +674,8 @@ namespace MetaExtractor.Services
                 if (File.Exists(nfoPath) && !config.OverwriteNfo)
                 {
                     _logger.Debug($"Skipping NFO for {item.Name} - file already exists");
+                    var skipEntry = $"NFO (skipped - already exists): {item.Name}";
+                    Plugin.CurrentProgress.AddLogEntry(skipEntry);
                     return false;
                 }
 
@@ -780,7 +833,7 @@ namespace MetaExtractor.Services
 
                 if (config.NfoIncludeYear && item.PremiereDate.HasValue)
                 {
-                    writer.WriteElementString("year", item.PremiereDate.Value.Year.ToString());
+                    writer.WriteElementString("year", item.PremiereDate.Value.Year.ToString(CultureInfo.InvariantCulture));
                 }
 
                 if (config.NfoIncludeTitles)
@@ -829,13 +882,13 @@ namespace MetaExtractor.Services
 
                 if (config.NfoIncludeRating && item.CriticRating.HasValue)
                 {
-                    writer.WriteElementString("criticrating", ((int)item.CriticRating.Value).ToString());
+                    writer.WriteElementString("criticrating", ((int)item.CriticRating.Value).ToString(CultureInfo.InvariantCulture));
                 }
 
                 if (config.NfoIncludeRuntime && item.RunTimeTicks.HasValue)
                 {
                     var runtime = TimeSpan.FromTicks(item.RunTimeTicks.Value);
-                    writer.WriteElementString("runtime", ((int)runtime.TotalMinutes).ToString());
+                    writer.WriteElementString("runtime", ((int)runtime.TotalMinutes).ToString(CultureInfo.InvariantCulture));
                 }
 
                 if (config.NfoIncludeTagline && isMovie)
@@ -909,16 +962,16 @@ namespace MetaExtractor.Services
                         
                         if (episode.IndexNumber.HasValue)
                         {
-                            writer.WriteElementString("episode", episode.IndexNumber.Value.ToString());
+                            writer.WriteElementString("episode", episode.IndexNumber.Value.ToString(CultureInfo.InvariantCulture));
                             
                             if (episode.IndexNumberEnd.HasValue && episode.IndexNumberEnd.Value != episode.IndexNumber.Value)
                             {
-                                writer.WriteElementString("displayepisode", episode.IndexNumber.Value.ToString());
+                                writer.WriteElementString("displayepisode", episode.IndexNumber.Value.ToString(CultureInfo.InvariantCulture));
                             }
                         }
                         if (episode.ParentIndexNumber.HasValue)
                         {
-                            writer.WriteElementString("season", episode.ParentIndexNumber.Value.ToString());
+                            writer.WriteElementString("season", episode.ParentIndexNumber.Value.ToString(CultureInfo.InvariantCulture));
                             
                             if (episode.ParentIndexNumber.Value == 0)
                             {
@@ -963,7 +1016,7 @@ namespace MetaExtractor.Services
                     var season = item as Season;
                     if (season != null && season.IndexNumber.HasValue)
                     {
-                        writer.WriteElementString("seasonnumber", season.IndexNumber.Value.ToString());
+                        writer.WriteElementString("seasonnumber", season.IndexNumber.Value.ToString(CultureInfo.InvariantCulture));
                     }
                 }
 
@@ -1285,7 +1338,7 @@ namespace MetaExtractor.Services
             foreach (var providerId in item.ProviderIds)
             {
                 writer.WriteStartElement("uniqueid");
-                writer.WriteAttributeString("type", providerId.Key.ToLower());
+                writer.WriteAttributeString("type", providerId.Key.ToLowerInvariant());
                 
                 if (providerId.Key.Equals("Imdb", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1313,7 +1366,7 @@ namespace MetaExtractor.Services
             var guideData = new Dictionary<string, string>();
             foreach (var providerId in item.ProviderIds)
             {
-                guideData[providerId.Key.ToLower()] = providerId.Value.ToLower();
+                guideData[providerId.Key.ToLowerInvariant()] = providerId.Value.ToLowerInvariant();
             }
 
             if (guideData.Count > 0)
@@ -1337,7 +1390,7 @@ namespace MetaExtractor.Services
                 writer.WriteAttributeString("name", "themoviedb");
                 writer.WriteAttributeString("max", "10");
                 writer.WriteAttributeString("default", "true");
-                writer.WriteElementString("value", item.CommunityRating.Value.ToString("0.0"));
+                writer.WriteElementString("value", item.CommunityRating.Value.ToString("0.0", CultureInfo.InvariantCulture));
                 writer.WriteElementString("votes", "0");
                 writer.WriteEndElement(); 
             }
@@ -1347,7 +1400,7 @@ namespace MetaExtractor.Services
                 writer.WriteStartElement("rating");
                 writer.WriteAttributeString("name", "metacritic");
                 writer.WriteAttributeString("max", "100");
-                writer.WriteElementString("value", item.CriticRating.Value.ToString("0.0"));
+                writer.WriteElementString("value", item.CriticRating.Value.ToString("0.0", CultureInfo.InvariantCulture));
                 writer.WriteElementString("votes", "0");
                 writer.WriteEndElement(); 
             }
@@ -1422,7 +1475,7 @@ namespace MetaExtractor.Services
                             {
                                 foreach (var providerId in collectionEntity.ProviderIds)
                                 {
-                                    var key = providerId.Key.ToLower();
+                                    var key = providerId.Key.ToLowerInvariant();
                                     writer.WriteAttributeString($"{key}colid", providerId.Value);
                                 }
                             }

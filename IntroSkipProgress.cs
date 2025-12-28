@@ -113,7 +113,7 @@ namespace MetaExtractor
         {
             lock (_lock)
             {
-                var timestamp = System.DateTime.Now.ToString("HH:mm:ss");
+                var timestamp = System.DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
                 _progressLog.Add($"[{timestamp}] {entry}");
                 if (_progressLog.Count > MaxLogEntries)
                 {
