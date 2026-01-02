@@ -324,6 +324,7 @@ define([
         self.config.ExportBanner = view.querySelector('#exportBanner').checked;
         self.config.ExportThumb = view.querySelector('#exportThumb').checked;
         self.config.ExportArt = view.querySelector('#exportArt').checked;
+        self.config.ExportDisc = view.querySelector('#exportDisc').checked;
 
         self.config.UseCustomArtworkNames = view.querySelector('#chkUseCustomArtworkNames').checked;
         self.config.CustomPosterName = view.querySelector('#txtCustomPosterName').value || 'poster';
@@ -453,6 +454,7 @@ define([
         self.config.ExportBanner = view.querySelector('#exportBanner').checked;
         self.config.ExportThumb = view.querySelector('#exportThumb').checked;
         self.config.ExportArt = view.querySelector('#exportArt').checked;
+        self.config.ExportDisc = view.querySelector('#exportDisc').checked;
 
         self.config.UseCustomArtworkNames = view.querySelector('#chkUseCustomArtworkNames').checked;
         self.config.CustomPosterName = view.querySelector('#txtCustomPosterName').value || 'poster';

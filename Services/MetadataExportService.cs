@@ -362,7 +362,21 @@ namespace MetaExtractor.Services
                     _logger.Debug($"Item {item.Name} has no path");
                     return null;
                 }
+                
+                // Normalize path separators for cross-platform compatibility
+                itemPath = itemPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+                
+                // Remove trailing directory separator if present
+                itemPath = itemPath.TrimEnd(Path.DirectorySeparatorChar);
+                
                 originalDirectory = Path.GetDirectoryName(itemPath);
+                
+                // On Linux, GetDirectoryName can return null or empty for certain paths
+                if (string.IsNullOrEmpty(originalDirectory))
+                {
+                    _logger.Debug($"Could not get directory name from path: {itemPath} for item {item.Name}");
+                    return null;
+                }
             }
             
             if (string.IsNullOrEmpty(originalDirectory))
@@ -667,7 +681,20 @@ namespace MetaExtractor.Services
                 }
                 else
                 {
-                    var fileName = Path.GetFileNameWithoutExtension(item.Path);
+                    // Normalize the path for cross-platform compatibility
+                    var itemPath = item.Path;
+                    if (!string.IsNullOrEmpty(itemPath))
+                    {
+                        itemPath = itemPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+                        itemPath = itemPath.TrimEnd(Path.DirectorySeparatorChar);
+                    }
+                    
+                    var fileName = Path.GetFileNameWithoutExtension(itemPath);
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        _logger.Warn($"Could not extract filename from path for {item.Name}");
+                        return false;
+                    }
                     nfoPath = Path.Combine(directory, $"{fileName}.nfo");
                 }
 
