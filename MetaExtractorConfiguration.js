@@ -57,6 +57,7 @@ define([
             
             self.toggleCustomPathInput();
             
+            view.querySelector('#exportAllArtworkTypes').checked = self.config.ExportAllArtworkTypes === true;
             view.querySelector('#exportPoster').checked = self.config.ExportPoster !== false;
             view.querySelector('#exportBackdrop').checked = self.config.ExportBackdrop !== false;
             view.querySelector('#exportLogo').checked = self.config.ExportLogo !== false;

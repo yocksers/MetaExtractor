@@ -473,48 +473,60 @@
                 <div class="settings-group">
                     <h3>Artwork Types</h3>
                     <p class="info-text">Select which artwork types to export:</p>
-                    <div class="checkbox-list">
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportPoster" name="exportPoster" />
-                                <span>Poster</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportBackdrop" name="exportBackdrop" />
-                                <span>Backdrop</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportLogo" name="exportLogo" />
-                                <span>Logo</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportBanner" name="exportBanner" />
-                                <span>Banner</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportThumb" name="exportThumb" />
-                                <span>Thumb</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportArt" name="exportArt" />
-                                <span>Clear Art</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="exportDisc" name="exportDisc" />
-                                <span>Disc</span>
-                            </label>
+                    
+                    <div class="checkboxContainer checkboxContainer-withDescription" style="margin-bottom: 1em; padding: 1em; background: rgba(0, 180, 255, 0.1); border-radius: 4px; border-left: 3px solid #00a4dc;">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="exportAllArtworkTypes" name="exportAllArtworkTypes" />
+                            <span style="font-weight: bold;">Export All Artwork Types (Recommended)</span>
+                        </label>
+                        <div class="fieldDescription">When enabled, the plugin will automatically detect and export ALL image types that Emby has for each item (Primary, Backdrop, Logo, Banner, Thumb, Art, Disc, Box, Screenshot, Menu, Chapter, Profile, etc.). This overrides the individual checkboxes below and ensures no artwork is missed.</div>
+                    </div>
+                    
+                    <div id="individualArtworkTypes">
+                        <p class="info-text" style="font-size: 0.9em; opacity: 0.7;">Or select specific types:</p>
+                        <div class="checkbox-list">
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportPoster" name="exportPoster" />
+                                    <span>Poster</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportBackdrop" name="exportBackdrop" />
+                                    <span>Backdrop</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportLogo" name="exportLogo" />
+                                    <span>Logo</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportBanner" name="exportBanner" />
+                                    <span>Banner</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportThumb" name="exportThumb" />
+                                    <span>Thumb</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportArt" name="exportArt" />
+                                    <span>Clear Art</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label class="emby-checkbox-label">
+                                    <input is="emby-checkbox" type="checkbox" id="exportDisc" name="exportDisc" />
+                                    <span>Disc</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

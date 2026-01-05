@@ -9,6 +9,7 @@ using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Drawing;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
@@ -22,6 +23,7 @@ namespace MetaExtractor
         private readonly ILibraryManager _libraryManager;
         private readonly IProviderManager _providerManager;
         private readonly IItemRepository _itemRepository;
+        private readonly IApplicationPaths _appPaths;
         public static Plugin? Instance { get; private set; }
         public static MetadataExportService? MetadataExporter { get; private set; }
         public static IntroSkipBackupService? IntroSkipBackupService { get; private set; }
@@ -42,6 +44,7 @@ namespace MetaExtractor
             _libraryManager = libraryManager;
             _providerManager = providerManager;
             _itemRepository = itemRepository;
+            _appPaths = appPaths;
         }
 
         public override void UpdateConfiguration(BasePluginConfiguration configuration)
@@ -100,7 +103,7 @@ namespace MetaExtractor
 
         public void Run()
         {
-            MetadataExporter = new MetadataExportService(_logger, _libraryManager, _providerManager, _itemRepository);
+            MetadataExporter = new MetadataExportService(_logger, _libraryManager, _providerManager, _itemRepository, _appPaths);
             IntroSkipBackupService = new IntroSkipBackupService(_logger, _libraryManager, _itemRepository);
             _logger.Info("Metadata Exporter plugin started successfully.");
         }

@@ -49,6 +49,7 @@ define(['loading'], function (loading) {
             self.config.UseCustomExportPath = view.querySelector('#useCustomExportPath').checked;
             self.config.CustomExportPath = view.querySelector('#customExportPath').value;
             self.config.UseHardlinks = view.querySelector('#useHardlinks').checked;
+            self.config.ExportAllArtworkTypes = view.querySelector('#exportAllArtworkTypes').checked;
             self.config.ExportPoster = view.querySelector('#exportPoster').checked;
             self.config.ExportBackdrop = view.querySelector('#exportBackdrop').checked;
             self.config.ExportLogo = view.querySelector('#exportLogo').checked;

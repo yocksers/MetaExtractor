@@ -19,6 +19,8 @@ namespace MetaExtractor
         
         public bool ExportCollections { get; set; } = true;
         
+        public bool ExportAllArtworkTypes { get; set; } = false;
+        
         public bool ExportPoster { get; set; } = true;
         public bool ExportBackdrop { get; set; } = true;
         public bool ExportLogo { get; set; } = true;
