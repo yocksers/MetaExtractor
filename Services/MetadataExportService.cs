@@ -135,11 +135,8 @@ namespace MetaExtractor.Services
                         }
                         else if (item is BoxSet boxSet)
                         {
-                            // Add the collection itself for NFO/artwork export
                             items.Add(item);
                             
-                            // Also export metadata for all items in the collection
-                            // BoxSet uses LinkedChildren instead of regular Parent relationship
                             try
                             {
                                 var children = boxSet.GetRecursiveChildren();
@@ -196,12 +193,10 @@ namespace MetaExtractor.Services
 
                         List<BaseItem> libraryItems;
                         
-                        // Special handling for Collections library - BoxSets don't use standard Parent relationship
                         if (library is MediaBrowser.Controller.Entities.CollectionFolder collectionFolder && 
                             collectionFolder.CollectionType == "boxsets")
                         {
                             _logger.Debug($"Library '{library.Name}' is a Collections library, using special query");
-                            // Query all BoxSets without Parent filter for Collections library
                             libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
                             {
                                 IncludeItemTypes = new[] { "BoxSet" },
@@ -321,15 +316,12 @@ namespace MetaExtractor.Services
             }
             else if (item is BoxSet boxSet)
             {
-                // Collections don't have a physical path, use a custom path or the configured path
                 if (config.UseCustomExportPath && !string.IsNullOrEmpty(config.CustomExportPath))
                 {
-                    // Use custom export path with a "Collections" subfolder
                     originalDirectory = Path.Combine(config.CustomExportPath, "Collections", SanitizeFileName(item.Name));
                 }
                 else
                 {
-                    // Use the library path if available, otherwise use Emby's data path
                     var libraryPath = GetLibraryPath(item);
                     if (!string.IsNullOrEmpty(libraryPath))
                     {
@@ -342,7 +334,6 @@ namespace MetaExtractor.Services
                     }
                 }
                 
-                // Ensure the directory exists for collections
                 if (!string.IsNullOrEmpty(originalDirectory) && !Directory.Exists(originalDirectory) && !config.DryRun)
                 {
                     try
@@ -366,15 +357,12 @@ namespace MetaExtractor.Services
                     return null;
                 }
                 
-                // Normalize path separators for cross-platform compatibility
                 itemPath = itemPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
                 
-                // Remove trailing directory separator if present
                 itemPath = itemPath.TrimEnd(Path.DirectorySeparatorChar);
                 
                 originalDirectory = Path.GetDirectoryName(itemPath);
                 
-                // On Linux, GetDirectoryName can return null or empty for certain paths
                 if (string.IsNullOrEmpty(originalDirectory))
                 {
                     _logger.Debug($"Could not get directory name from path: {itemPath} for item {item.Name}");
@@ -497,8 +485,6 @@ namespace MetaExtractor.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                // For episodes and movies, use the video filename as the base for artwork names
-                // For series and seasons, use generic names like "poster", "fanart", etc.
                 string baseFilename = "";
                 if (item is Episode || item is Movie)
                 {
@@ -525,7 +511,6 @@ namespace MetaExtractor.Services
                 var artName = config.UseCustomArtworkNames ? config.CustomArtName : "clearart";
                 var discName = config.UseCustomArtworkNames ? config.CustomDiscName : "disc";
                 
-                // Prepend the base filename for episodes and movies
                 if (!string.IsNullOrEmpty(baseFilename))
                 {
                     posterName = $"{baseFilename}-{posterName}";
@@ -537,33 +522,27 @@ namespace MetaExtractor.Services
                     discName = $"{baseFilename}-{discName}";
                 }
                 
-                // Log available images for debugging
                 if (item is Episode)
                 {
                     _logger.Debug($"Episode {item.Name}: Primary={item.HasImage(ImageType.Primary)}, Thumb={item.HasImage(ImageType.Thumb)}, Backdrop={item.HasImage(ImageType.Backdrop)}");
                 }
                 
-                // If ExportAllArtworkTypes is enabled, iterate through all ImageType enum values
                 if (config.ExportAllArtworkTypes)
                 {
                     exported |= ExportAllImageTypes(item, directory, baseFilename, config, cancellationToken);
                     return exported;
                 }
                 
-                // Episodes typically have Thumb images (screenshots), not Primary images
-                // Check for both Primary and Thumb for episodes
                 if (config.ExportPoster)
                 {
                     if (item is Episode)
                     {
-                        // For episodes, try Primary first, then fall back to Thumb
                         if (item.HasImage(ImageType.Primary))
                         {
                             exported |= ExportImage(item, ImageType.Primary, directory, posterName, config, cancellationToken);
                         }
                         else if (item.HasImage(ImageType.Thumb))
                         {
-                            // Export thumb as poster for episodes that don't have a primary image
                             exported |= ExportImage(item, ImageType.Thumb, directory, posterName, config, cancellationToken);
                         }
                     }
@@ -593,10 +572,8 @@ namespace MetaExtractor.Services
                     exported |= ExportImage(item, ImageType.Banner, directory, bannerName, config, cancellationToken);
                 }
 
-                // For episodes, also export the Thumb image separately if requested
                 if (config.ExportThumb && item.HasImage(ImageType.Thumb))
                 {
-                    // Only export as thumb if we didn't already export it as poster
                     if (!(item is Episode && !item.HasImage(ImageType.Primary)))
                     {
                         exported |= ExportImage(item, ImageType.Thumb, directory, thumbName, config, cancellationToken);
@@ -627,32 +604,31 @@ namespace MetaExtractor.Services
             
             try
             {
-                // Get all possible ImageType enum values
-                var allImageTypes = Enum.GetValues(typeof(ImageType)).Cast<ImageType>();
+                if (item.ImageInfos == null || item.ImageInfos.Length == 0)
+                {
+                    return false;
+                }
                 
-                foreach (var imageType in allImageTypes)
+                var imagesByType = item.ImageInfos
+                    .Where(img => !string.IsNullOrEmpty(img.Path))
+                    .GroupBy(img => img.Type)
+                    .ToList();
+                
+                foreach (var typeGroup in imagesByType)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     
-                    // Check if item has this image type
-                    if (!item.HasImage(imageType))
-                    {
-                        continue;
-                    }
+                    var imageType = typeGroup.Key;
+                    var images = typeGroup.ToList();
                     
-                    // Determine the base name for this image type
                     string imageTypeName = imageType.ToString().ToLowerInvariant();
                     string baseName = string.IsNullOrEmpty(baseFilename) 
                         ? imageTypeName 
                         : $"{baseFilename}-{imageTypeName}";
                     
-                    // Handle multiple images (like backdrops)
-                    var imageCount = item.GetImages(imageType).Count();
-                    
-                    if (imageCount > 1)
+                    if (images.Count > 1)
                     {
-                        // Export multiple images with index
-                        for (int i = 0; i < imageCount; i++)
+                        for (int i = 0; i < images.Count; i++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             var indexedName = i == 0 ? baseName : $"{baseName}{i}";
@@ -661,14 +637,13 @@ namespace MetaExtractor.Services
                     }
                     else
                     {
-                        // Export single image
                         exported |= ExportImage(item, imageType, directory, baseName, config, cancellationToken);
                     }
                 }
                 
                 if (exported)
                 {
-                    var imageTypes = allImageTypes.Where(t => item.HasImage(t)).Select(t => t.ToString());
+                    var imageTypes = imagesByType.Select(g => g.Key.ToString());
                     _logger.Debug($"Exported all artwork types for {item.Name}: {string.Join(", ", imageTypes)}");
                 }
             }
@@ -694,7 +669,6 @@ namespace MetaExtractor.Services
 
                 var sourceFile = imageInfo.Path;
                 
-                // Check if this is a URL (remote image)
                 bool isRemoteUrl = sourceFile.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
                                    sourceFile.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
                 
@@ -874,7 +848,6 @@ namespace MetaExtractor.Services
                 }
                 else
                 {
-                    // Normalize the path for cross-platform compatibility
                     var itemPath = item.Path;
                     if (!string.IsNullOrEmpty(itemPath))
                     {
@@ -1813,7 +1786,6 @@ namespace MetaExtractor.Services
             var invalidChars = Path.GetInvalidFileNameChars();
             var sanitized = string.Join("_", fileName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
             
-            // Also replace some additional characters that might cause issues
             sanitized = sanitized.Replace(":", "_").Replace("?", "_").Replace("*", "_");
             
             return string.IsNullOrWhiteSpace(sanitized) ? "Unknown" : sanitized.TrimEnd('.');

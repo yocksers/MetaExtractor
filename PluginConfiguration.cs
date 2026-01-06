@@ -1,4 +1,4 @@
-﻿using MediaBrowser.Model.Plugins;
+using MediaBrowser.Model.Plugins;
 using System;
 using System.Collections.Generic;
 
@@ -86,19 +86,16 @@ namespace MetaExtractor
         public string IntroSkipBackupFilePath { get; set; } = string.Empty; // Full path to single backup file
         public bool IntroSkipIncludeInNfo { get; set; } = true;
         
-        // Per-episode backup mode (saves JSON alongside episodes or in custom folder)
         public bool IntroSkipSavePerEpisode { get; set; } = false;
         public bool IntroSkipUseCustomFolder { get; set; } = false; // Save to custom folder instead of next to video files
         public string IntroSkipCustomFolderPath { get; set; } = string.Empty; // Path for custom folder backups
         
-        // theTVDB Episode ID matching for portable intro skip data
         public bool IntroSkipUseTvdbMatching { get; set; } = true; // Use theTVDB episode IDs for matching (more portable)
         
         public bool IntroSkipRestoreFromScan { get; set; } = false;
         public List<string> IntroSkipScanFolderPaths { get; set; } = new List<string>();
         
         
-        // Scheduled Task Settings (separate from manual export settings)
         public bool ScheduledTaskBackupNfo { get; set; } = true;
         public bool ScheduledTaskBackupIntroSkips { get; set; } = true;
         

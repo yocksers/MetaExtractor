@@ -1,4 +1,4 @@
-﻿namespace MetaExtractor.Api
+namespace MetaExtractor.Api
 {
     public static class ApiRoutes
     {

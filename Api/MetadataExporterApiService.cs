@@ -203,7 +203,6 @@ namespace MetaExtractor.Api
             
             if (restoreFromScan)
             {
-                // Restore by scanning folders for .intro.json files
                 if (scanFolderPaths.Count == 0)
                 {
                     return new RestoreResult
@@ -221,7 +220,6 @@ namespace MetaExtractor.Api
             }
             else
             {
-                // Restore from centralized backup file
             if (string.IsNullOrWhiteSpace(request.FilePath))
             {
                 return new RestoreResult

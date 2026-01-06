@@ -44,7 +44,6 @@ namespace MetaExtractor.ScheduledTasks
 
             var config = Plugin.Instance.Configuration;
             
-            // Check what needs to be backed up based on scheduled task configuration
             bool backupNfo = config.ScheduledTaskBackupNfo;
             bool backupIntroSkip = config.ScheduledTaskBackupIntroSkips;
 
@@ -63,7 +62,6 @@ namespace MetaExtractor.ScheduledTasks
 
             try
             {
-                // Backup NFO files
                 if (backupNfo && Plugin.MetadataExporter != null)
                 {
                     _logger.Info("Starting NFO backup...");
@@ -89,7 +87,6 @@ namespace MetaExtractor.ScheduledTasks
                     progress?.Report(currentProgress);
                 }
 
-                // Backup Intro Skip data
                 if (backupIntroSkip && Plugin.IntroSkipBackupService != null)
                 {
                     _logger.Info("Starting Intro Skip backup...");
@@ -145,7 +142,6 @@ namespace MetaExtractor.ScheduledTasks
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            // Run daily at 2 AM by default
             return new[]
             {
                 new TaskTriggerInfo

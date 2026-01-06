@@ -46,7 +46,6 @@ namespace MetaExtractor.Services
 
             try
             {
-                    // Initialize progress tracking
                     Plugin.IntroSkipProgress.Reset();
                     Plugin.IntroSkipProgress.IsRunning = true;
                     Plugin.IntroSkipProgress.Operation = "Backup";
@@ -295,7 +294,6 @@ namespace MetaExtractor.Services
                             Markers = markerChapters
                         };
 
-                        // Add series provider IDs
                         if (series != null && series.ProviderIds != null)
                         {
                             series.ProviderIds.TryGetValue("Tvdb", out var tvdbId);
@@ -306,7 +304,6 @@ namespace MetaExtractor.Services
                             backupEntry.ImdbId = imdbId;
                         }
                         
-                        // Add episode provider IDs (specifically theTVDB episode ID for portable matching)
                         if (useTvdbMatching && episode.ProviderIds != null)
                         {
                             episode.ProviderIds.TryGetValue("Tvdb", out var tvdbEpisodeId);
@@ -319,7 +316,6 @@ namespace MetaExtractor.Services
 
                         if (savePerEpisode)
                         {
-                            // Save individual JSON file alongside episode or in custom folder
                             if (!string.IsNullOrEmpty(episode.Path) && File.Exists(episode.Path))
                             {
                                 try
@@ -329,14 +325,12 @@ namespace MetaExtractor.Services
                                     
                                     if (useCustomFolder)
                                     {
-                                        // Save to custom folder with organized structure
                                         if (!Directory.Exists(customFolderPath))
                                         {
                                             Directory.CreateDirectory(customFolderPath);
                                             _logger.Info($"Created custom backup folder: {customFolderPath}");
                                         }
                                         
-                                        // Create structure: CustomFolder/SeriesName/Season X/episodefile.intro.json
                                         var seriesName = SanitizeFileName(series?.Name ?? "Unknown");
                                         var seasonFolder = $"Season {episode.ParentIndexNumber ?? 0:D2}";
                                         var seriesFolder = Path.Combine(customFolderPath, seriesName);
@@ -351,7 +345,6 @@ namespace MetaExtractor.Services
                                     }
                                     else
                                     {
-                                        // Save next to video file
                                         var episodeDir = Path.GetDirectoryName(episode.Path);
                                         if (string.IsNullOrEmpty(episodeDir))
                                         {
@@ -387,7 +380,6 @@ namespace MetaExtractor.Services
                         }
                         else
                         {
-                            // Centralized backup mode
                             backupData.RemoveAll(e => e.EpisodeId == backupEntry.EpisodeId || 
                                 (e.FilePath == backupEntry.FilePath && !string.IsNullOrEmpty(backupEntry.FilePath)));
                             
@@ -403,7 +395,6 @@ namespace MetaExtractor.Services
                     }
                 }
 
-                // Only save centralized backup file if not in per-episode mode
                 if (!savePerEpisode)
                 {
                 var jsonOptions = new JsonSerializerOptions
@@ -429,7 +420,6 @@ namespace MetaExtractor.Services
                     _logger.Info($"Successfully wrote backup file: {backupFilePath}");
                     Plugin.IntroSkipProgress.AddLogEntry($"Saved centralized backup to: {backupFilePath}");
                     
-                    // Validate backup
                     await ValidateBackup(backupFilePath, itemsWithMarkers);
                 }
                 catch (UnauthorizedAccessException ex)
@@ -462,7 +452,6 @@ namespace MetaExtractor.Services
                 Plugin.IntroSkipProgress.AddLogEntry(result.Message);
                 Plugin.IntroSkipProgress.AddLogEntry($"Backup completed successfully");
                 
-                // Generate validation report
                 var validationErrors = Plugin.IntroSkipProgress.ValidationErrors;
                 if (validationErrors.Count > 0)
                 {
@@ -507,7 +496,6 @@ namespace MetaExtractor.Services
                     return;
                 }
 
-                // Try to parse the backup file
                 var json = await File.ReadAllTextAsync(backupFilePath);
                 var backup = JsonSerializer.Deserialize<IntroSkipBackup>(json);
                 
@@ -519,7 +507,6 @@ namespace MetaExtractor.Services
                     return;
                 }
 
-                // Validate entry count
                 if (backup.Entries.Count != expectedCount)
                 {
                     var warning = $"Entry count mismatch: expected {expectedCount}, found {backup.Entries.Count}";
@@ -527,7 +514,6 @@ namespace MetaExtractor.Services
                     _logger.Warn(warning);
                 }
 
-                // Validate entries have markers
                 int entriesWithoutMarkers = 0;
                 int entriesWithoutIds = 0;
                 foreach (var entry in backup.Entries)
@@ -635,7 +621,6 @@ namespace MetaExtractor.Services
 
             try
             {
-                // Initialize progress tracking
                 Plugin.IntroSkipProgress.Reset();
                 Plugin.IntroSkipProgress.IsRunning = true;
                 Plugin.IntroSkipProgress.Operation = "Restore";
@@ -646,7 +631,6 @@ namespace MetaExtractor.Services
                 
                 List<IntroSkipBackupEntry> entries = new List<IntroSkipBackupEntry>();
                 
-                // Determine restore mode: scan folders or use centralized backup
                 if (scanFolderPaths != null && scanFolderPaths.Count > 0)
                 {
                     _logger.Info($"Restore mode: Scanning folders for .intro.json files");
@@ -731,7 +715,6 @@ namespace MetaExtractor.Services
 
                     Episode? episode = null;
 
-                    // First try: Match by theTVDB Episode ID (most portable)
                     if (!string.IsNullOrEmpty(entry.TvdbEpisodeId))
                     {
                         var query = new InternalItemsQuery
@@ -756,19 +739,16 @@ namespace MetaExtractor.Services
                         }
                     }
 
-                    // Second try: Match by internal Episode ID
                     if (episode == null && long.TryParse(entry.EpisodeId, out long episodeId))
                     {
                         episode = _libraryManager.GetItemById(episodeId) as Episode;
                     }
 
-                    // Third try: Match by file path
                     if (episode == null && !string.IsNullOrEmpty(entry.FilePath))
                     {
                         episode = _libraryManager.FindByPath(entry.FilePath, false) as Episode;
                     }
 
-                    // Fourth try: Match by series provider IDs + season/episode number
                     if (episode == null)
                     {
                         var query = new InternalItemsQuery
@@ -1095,7 +1075,6 @@ namespace MetaExtractor.Services
                     
                     Episode? episode = null;
                     
-                    // Try to match by theTVDB episode ID
                     if (!string.IsNullOrEmpty(entry.TvdbEpisodeId))
                     {
                         var allEpisodes = _libraryManager.GetItemList(new InternalItemsQuery
@@ -1114,7 +1093,6 @@ namespace MetaExtractor.Services
                         }
                     }
                     
-                    // Fallback: Match by series + season/episode number
                     if (episode == null && !string.IsNullOrEmpty(entry.TvdbId))
                     {
                         var episodeQuery = new InternalItemsQuery
@@ -1270,7 +1248,6 @@ namespace MetaExtractor.Services
         public int ItemsNotFound { get; set; }
     }
 
-    // Migration export/import classes
     public class MigrationExport
     {
         public string ExportVersion { get; set; } = "1.0";
