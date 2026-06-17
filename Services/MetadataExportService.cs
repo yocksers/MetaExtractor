@@ -468,6 +468,11 @@ namespace MetaExtractor.Services
                 exported |= ExportNfo(item, directory, config, cancellationToken);
             }
 
+            if (config.ExportSubtitles && config.UseCustomExportPath)
+            {
+                exported |= ExportSubtitles(item, directory, config, cancellationToken);
+            }
+
             if (!exported)
             {
                 var skipEntry = $"Skipped (no metadata/artwork to export or all files exist): {item.Name}";
@@ -828,6 +833,92 @@ namespace MetaExtractor.Services
                 _logger.ErrorException($"Error exporting {imageType} image for {item.Name}", ex);
                 return false;
             }
+        }
+
+        private bool ExportSubtitles(BaseItem item, string directory, PluginConfiguration config, CancellationToken cancellationToken)
+        {
+            if (!(item is Movie || item is Episode))
+                return false;
+
+            var itemPath = item.Path;
+            if (string.IsNullOrEmpty(itemPath))
+                return false;
+
+            itemPath = itemPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+            itemPath = itemPath.TrimEnd(Path.DirectorySeparatorChar);
+
+            var sourceDirectory = Path.GetDirectoryName(itemPath);
+            if (string.IsNullOrEmpty(sourceDirectory) || !Directory.Exists(sourceDirectory))
+                return false;
+
+            var videoBaseName = Path.GetFileNameWithoutExtension(itemPath);
+            if (string.IsNullOrEmpty(videoBaseName))
+                return false;
+
+            var subtitleExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { ".srt", ".ass", ".ssa", ".sbv", ".ttml", ".dfxp" };
+
+            var exported = false;
+
+            try
+            {
+                foreach (var file in Directory.GetFiles(sourceDirectory))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var ext = Path.GetExtension(file);
+                    if (!subtitleExtensions.Contains(ext))
+                        continue;
+
+                    var fileBaseName = Path.GetFileNameWithoutExtension(file);
+                    if (!fileBaseName.Equals(videoBaseName, StringComparison.OrdinalIgnoreCase) &&
+                        !fileBaseName.StartsWith(videoBaseName + ".", StringComparison.OrdinalIgnoreCase) &&
+                        !fileBaseName.StartsWith(videoBaseName + "_", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var fileName = Path.GetFileName(file);
+                    var targetFile = Path.Combine(directory, fileName);
+
+                    if (string.Equals(file, targetFile, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (File.Exists(targetFile) && !config.OverwriteArtwork)
+                    {
+                        _logger.Debug($"Skipping subtitle {fileName} for {item.Name} - file already exists");
+                        Plugin.CurrentProgress.AddLogEntry($"Subtitle (skipped - already exists): {item.Name} - {fileName}");
+                        continue;
+                    }
+
+                    if (config.DryRun)
+                    {
+                        Plugin.CurrentProgress.AddLogEntry($"[DRY RUN] Subtitle: {item.Name} - {fileName} → {targetFile}");
+                        exported = true;
+                        continue;
+                    }
+
+                    try
+                    {
+                        File.Copy(file, targetFile, config.OverwriteArtwork);
+                        Plugin.CurrentProgress.AddLogEntry($"Subtitle: {item.Name} - {fileName} → {targetFile}");
+                        _logger.Debug($"Exported subtitle {fileName} for {item.Name} to {targetFile}");
+                        exported = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn($"Failed to copy subtitle {fileName} for {item.Name}: {ex.Message}");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorException($"Error exporting subtitles for {item.Name}", ex);
+            }
+
+            return exported;
         }
 
         private bool ExportNfo(BaseItem item, string directory, PluginConfiguration config, CancellationToken cancellationToken)

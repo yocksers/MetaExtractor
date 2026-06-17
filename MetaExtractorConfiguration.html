@@ -314,7 +314,7 @@
         <form class="MetadataExporterConfigurationForm">
             <div id="export-tab" class="tab-content active">
             <div class="export-section">
-                <h2>📦 Export Metadata & Artwork</h2>
+                <h2>Export Metadata & Artwork</h2>
                 <p>Export metadata and artwork from Emby's database to your media folders as NFO files and images.</p>
 
                 <div class="settings-group">
@@ -358,6 +358,36 @@
                     </div>
                 </div>
 
+                <div class="settings-group">
+                    <h3>Export Destination</h3>
+                    <div class="checkbox-list">
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="useCustomExportPath" name="useCustomExportPath" />
+                                <span>Export to custom folder</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, files will be exported to a custom folder instead of the media library locations. The folder structure will mimic the original library structure.</div>
+                        </div>
+                        <div class="inputContainer" id="customExportPathContainer" style="display: none; margin-top: 0.5em;">
+                            <label class="inputLabel inputLabelUnfocused" for="customExportPath">Custom Export Folder Path:</label>
+                            <div style="display: flex; gap: 0.5em;">
+                                <input is="emby-input" type="text" id="customExportPath" name="customExportPath" style="flex: 1;" />
+                                <button is="emby-button" type="button" id="browseExportPath" class="raised">
+                                    <span>Browse...</span>
+                                </button>
+                            </div>
+                            <div class="fieldDescription">Enter the full path where files should be exported (e.g., C:\ExportedMetadata or /media/exported)</div>
+                        </div>
+                        <div class="checkboxContainer" id="useHardlinksContainer" style="display: none; margin-top: 0.5em; margin-left: 2em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="useHardlinks" name="useHardlinks" />
+                                <span>Use hardlinks for artwork (saves disk space)</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, hardlinks will be created instead of copying artwork files. This saves disk space but only works when both source and destination are on the same filesystem.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button is="emby-button" type="button" class="raised button-submit block export-button" id="exportBtn">
                     <i class="md-icon">save</i>
                     <span>Export Metadata</span>
@@ -386,7 +416,7 @@
             
             <div id="settings-tab" class="tab-content">
             <div class="settings-section">
-                <h2>⚙️ Export Settings</h2>
+                <h2>Export Settings</h2>
 
                 <div class="settings-group">
                     <h3>Export Types</h3>
@@ -402,6 +432,13 @@
                                 <input is="emby-checkbox" type="checkbox" id="exportNfo" name="exportNfo" />
                                 <span>Export NFO Files</span>
                             </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="exportSubtitles" name="exportSubtitles" />
+                                <span>Export External Subtitles</span>
+                            </label>
+                            <div class="fieldDescription">When enabled, external subtitle files (.srt, .ass, .ssa, .sbv, .ttml, .dfxp) found alongside the video file will be copied to the custom export destination. Requires "Export to custom folder" to be enabled.</div>
                         </div>
                     </div>
                 </div>
@@ -442,30 +479,6 @@
                                 <span>Dry Run Mode (Preview only)</span>
                             </label>
                             <div class="fieldDescription">When enabled, no files will be written. The plugin will only log what would be exported.</div>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="useCustomExportPath" name="useCustomExportPath" />
-                                <span>Export to custom folder</span>
-                            </label>
-                            <div class="fieldDescription">When enabled, files will be exported to a custom folder instead of the media library locations. The folder structure will mimic the original library structure.</div>
-                        </div>
-                        <div class="inputContainer" id="customExportPathContainer" style="display: none; margin-top: 0.5em;">
-                            <label class="inputLabel inputLabelUnfocused" for="customExportPath">Custom Export Folder Path:</label>
-                            <div style="display: flex; gap: 0.5em;">
-                                <input is="emby-input" type="text" id="customExportPath" name="customExportPath" style="flex: 1;" />
-                                <button is="emby-button" type="button" id="browseExportPath" class="raised">
-                                    <span>Browse...</span>
-                                </button>
-                            </div>
-                            <div class="fieldDescription">Enter the full path where files should be exported (e.g., C:\ExportedMetadata or /media/exported)</div>
-                        </div>
-                        <div class="checkboxContainer" id="useHardlinksContainer" style="display: none; margin-top: 0.5em; margin-left: 2em;">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="useHardlinks" name="useHardlinks" />
-                                <span>Use hardlinks for artwork (saves disk space)</span>
-                            </label>
-                            <div class="fieldDescription">When enabled, hardlinks will be created instead of copying artwork files. This saves disk space but only works when both source and destination are on the same filesystem.</div>
                         </div>
                     </div>
                 </div>
@@ -733,9 +746,9 @@
             
             <div id="introskip-tab" class="tab-content">
                 <div class="settings-section">
-                    <h2>⏭️ Intro Skip Backup & Restore</h2>
+                    <h2>Intro Skip Backup & Restore</h2>
                     <p>Backup and restore intro skip markers (IntroStart, IntroEnd, CreditStart) to/from JSON files. This protects your intro detection data from being lost during library rebuilds or database issues.</p>
-                    <p class="info-text">💡 <strong>Tip:</strong> Configure automatic backups in the <strong>Scheduled Task</strong> tab.</p>
+                    <p class="info-text"> <strong>Tip:</strong> Configure automatic backups in the <strong>Scheduled Task</strong> tab.</p>
                     
                     <div id="introSkipSettings" style="margin-top: 1.5em;">
                         
@@ -878,7 +891,7 @@
                             </button>
                         </div>
                         
-                        <h3 style="margin-top: 2em; color: #00a4dc;">🔄 Server Migration Tools</h3>
+                        <h3 style="margin-top: 2em; color: #00a4dc;">Server Migration Tools</h3>
                         
                         <div style="margin-bottom: 1em; padding: 1em; background: rgba(139,195,74,0.1); border-radius: 4px; border-left: 4px solid #8bc34a;">
                             <p style="margin: 0; color: #8bc34a;">
@@ -951,7 +964,7 @@
                             </div>
                             
                             <div id="validationErrorsContainer" style="margin-top: 1em; display: none;">
-                                <h5 style="margin: 0.5em 0; color: #ff9800;">⚠️ Validation Warnings</h5>
+                                <h5 style="margin: 0.5em 0; color: #ff9800;">Validation Warnings</h5>
                                 <div id="validationErrors" style="background: rgba(255,152,0,0.2); padding: 0.75em; border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 0.85em; border-left: 4px solid #ff9800;">
                                 </div>
                             </div>
@@ -966,8 +979,8 @@
             
             <div id="scheduledtask-tab" class="tab-content">
                 <div class="settings-section">
-                    <h2>🕐 Scheduled Task Configuration</h2>
-                    <p>Configure what the "Metadata Backup" scheduled task will backup automatically. The scheduled task can be configured and run from <strong>Dashboard → Scheduled Tasks</strong>.</p>
+                    <h2>Scheduled Task Configuration</h2>
+                    <p>Configure what the "Metadata Backup" scheduled task will backup automatically. The scheduled task can be configured and run from <strong>Dashboard  Scheduled Tasks</strong>.</p>
                     
                     <div style="margin: 2em 0; padding: 1.5em; background: rgba(0,120,215,0.1); border-radius: 8px; border-left: 4px solid #00a4dc;">
                         <h3 style="margin-top: 0; color: #00a4dc;">What to Backup</h3>
@@ -991,18 +1004,18 @@
                     </div>
                     
                     <div style="margin: 2em 0; padding: 1.5em; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border-left: 4px solid #4caf50;">
-                        <h3 style="margin-top: 0; color: #4caf50;">📋 How to Use</h3>
+                        <h3 style="margin-top: 0; color: #4caf50;">How to Use</h3>
                         <ol style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">
                             <li>Enable the backup types you want (NFO files and/or intro skips)</li>
                             <li>Configure the detailed settings for each backup type in their respective tabs</li>
-                            <li>Go to <strong>Dashboard → Scheduled Tasks</strong> in Emby</li>
+                            <li>Go to <strong>Dashboard  Scheduled Tasks</strong> in Emby</li>
                             <li>Find <strong>"Metadata Backup"</strong> in the Library category</li>
                             <li>Configure the schedule (default: daily at 2 AM) or run manually</li>
                         </ol>
                     </div>
                     
                     <div style="margin: 2em 0; padding: 1.5em; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border-left: 4px solid #ff9800;">
-                        <h3 style="margin-top: 0; color: #ff9800;">⚠️ Important Notes</h3>
+                        <h3 style="margin-top: 0; color: #ff9800;">Important Notes</h3>
                         <ul style="margin: 0.5em 0; padding-left: 1.5em; line-height: 1.8;">
                             <li>If both options are disabled, the scheduled task will exit without doing anything</li>
                             <li>NFO backups use the library/item selection from the Export tab</li>
@@ -1015,7 +1028,7 @@
             
             <div id="log-tab" class="tab-content">
                 <div class="settings-section">
-                    <h2>📋 Export Log</h2>
+                    <h2>Export Log</h2>
                     <p>View detailed logs of export operations. Logs are only stored in memory and not saved to disk unless you export them.</p>
                     
                     <div class="export-log-actions">

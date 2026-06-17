@@ -47,6 +47,7 @@ define([
 
             view.querySelector('#exportArtwork').checked = self.config.ExportArtwork !== false;
             view.querySelector('#exportNfo').checked = self.config.ExportNfo !== false;
+            view.querySelector('#exportSubtitles').checked = self.config.ExportSubtitles !== false;
             view.querySelector('#exportCollections').checked = self.config.ExportCollections !== false;
             view.querySelector('#overwriteNfo').checked = self.config.OverwriteNfo !== false;
             view.querySelector('#overwriteArtwork').checked = self.config.OverwriteArtwork !== false;
@@ -312,6 +313,7 @@ define([
         }
         self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
         self.config.ExportNfo = view.querySelector('#exportNfo').checked;
+        self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
         self.config.ExportCollections = view.querySelector('#exportCollections').checked;
         self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
         self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;
@@ -443,6 +445,7 @@ define([
         }
         self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
         self.config.ExportNfo = view.querySelector('#exportNfo').checked;
+        self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
         self.config.ExportCollections = view.querySelector('#exportCollections').checked;
         self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
         self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;

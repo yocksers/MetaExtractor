@@ -321,7 +321,7 @@ define(['loading'], function (loading) {
                 
                 var errorsHtml = '';
                 progress.ValidationErrors.forEach(function (error) {
-                    errorsHtml += '<div style="margin-bottom: 0.5em;">• ' + error + '</div>';
+                    errorsHtml += '<div style="margin-bottom: 0.5em;"> ' + error + '</div>';
                 });
                 
                 validationErrorsDiv.innerHTML = errorsHtml;

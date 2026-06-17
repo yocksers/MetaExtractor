@@ -43,6 +43,7 @@ define(['loading'], function (loading) {
             }
             self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
             self.config.ExportNfo = view.querySelector('#exportNfo').checked;
+            self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
             self.config.ExportCollections = view.querySelector('#exportCollections').checked;
             self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
             self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;
@@ -204,7 +205,7 @@ define(['loading'], function (loading) {
 
             if (result.Success) {
                 resultsHeader.className = 'results-header success';
-                resultsTitle.textContent = '✓ Export Complete';
+                resultsTitle.textContent = ' Export Complete';
                 
                 var statsHtml = '<strong>Items Processed:</strong> ' + result.ItemsProcessed.toLocaleString();
                 if (result.TotalItems && result.TotalItems > 0) {
@@ -226,7 +227,7 @@ define(['loading'], function (loading) {
                 }
             } else {
                 resultsHeader.className = 'results-header error';
-                resultsTitle.textContent = '✗ Export Failed';
+                resultsTitle.textContent = ' Export Failed';
                 resultsStats.innerHTML = '<strong>Error:</strong> ' + utils.escapeHtml(result.Message);
                 errorList.innerHTML = '';
             }

@@ -1,4 +1,4 @@
-# 📦 MetaExtractor (Metadata Exporter) for Emby
+# MetaExtractor (Metadata Exporter) for Emby
 <img width="768" height="512" alt="logo" src="https://github.com/user-attachments/assets/7ecdf039-89e6-4b2c-97c6-4bb46a760987" />
 
 
@@ -16,9 +16,9 @@ This tool is essential for:
 
 ---
 
-## ✨ Features
+## Features
 
-### 📄 Comprehensive NFO Export
+### Comprehensive NFO Export
 Generates XML NFO files compatible with most media managers. You have full granular control over what data gets written:
 *   **Basic Info:** Titles, Year, Plot, Taglines, Outlines.
 *   **People:** Cast, Directors, Writers (including Provider IDs).
@@ -28,13 +28,13 @@ Generates XML NFO files compatible with most media managers. You have full granu
 *   **Collections:** Movie collections/sets with provider IDs.
 *   **Detailed Ratings:** Multiple rating sources (TMDB, Metacritic) with proper formatting.
 
-### 🖼️ Artwork Export
+### Artwork Export
 Exports the exact images currently in your Emby database to your media folders:
 *   **Supported Types:** Posters, Backdrops, Logos, Banners, Thumbs, Clear Art, and Disc Art.
 *   **Naming Standards:** Uses standard naming conventions (e.g., `poster.jpg`, `fanart.jpg`, `clearlogo.png`) or custom names you define.
 *   **Multiple Backdrops:** Automatically exports all backdrop images with proper numbering.
 
-### ⏭️ Intro Skip Backup & Restore
+### Intro Skip Backup & Restore
 Protect your intro detection data from being lost:
 *   **Backup to JSON:** Export intro skip markers (IntroStart, IntroEnd, CreditStart) from episodes to a JSON backup file.
 *   **Selective Backup:** Choose entire libraries or specific TV series to backup.
@@ -43,7 +43,7 @@ Protect your intro detection data from being lost:
 *   **NFO Integration:** Optionally include intro skip markers in NFO chapter data.
 *   **Incremental Updates:** Backup file is updated with new/modified episodes, preserving existing data.
 
-### ⚙️ Advanced Functionality
+### Advanced Functionality
 *   **Library & Item Selection:** Export entire libraries at once (Recursive) or select specific Movies/Shows manually.
 *   **Auto-Save:** Settings automatically save as you change them - no more clicking "Save" repeatedly!
 *   **Dry Run Mode:** "Try before you buy." Run a full export simulation to see the logs of what *would* happen without writing a single file to disk.
@@ -57,7 +57,7 @@ Protect your intro detection data from being lost:
 
 ---
 
-## 🚀 Installation
+## Installation
 
 1.  Download the latest `MetaExtractor.dll` from the **[Releases](../../releases)** page.
 2.  Stop your Emby Server.
@@ -70,7 +70,7 @@ Protect your intro detection data from being lost:
 
 ---
 
-## 📖 Usage Guide
+## Usage Guide
 
 Once installed, open the plugin configuration page via **Dashboard > Plugins > Metadata Exporter**.
 
@@ -104,7 +104,7 @@ Protect your intro detection data with backup and restore functionality.
 *   **Download Log:** Saves the log to a `.txt` file for debugging.
 *   **Clear Log:** Resets the log display.
 
-## 💡 Tips & Best Practices
+## Tips & Best Practices
 
 1.  **Always use Dry Run first** when testing new settings, especially with large libraries.
 2.  **Backup regularly** before making any bulk file operations.
@@ -115,11 +115,11 @@ Protect your intro detection data with backup and restore functionality.
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 While this plugin includes safety features like "Dry Run," **always ensure you have backups** of your media library data before performing bulk file operations, especially if using the "Overwrite" features. Intro skip restore will modify your Emby database chapter markers, so backup your database before major restore operations.
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
