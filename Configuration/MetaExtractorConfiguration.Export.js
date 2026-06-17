@@ -44,6 +44,7 @@ define(['loading'], function (loading) {
             self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
             self.config.ExportNfo = view.querySelector('#exportNfo').checked;
             self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
+            self.config.MoveSubtitles = view.querySelector('#moveSubtitles').checked;
             self.config.ExportCollections = view.querySelector('#exportCollections').checked;
             self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
             self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;

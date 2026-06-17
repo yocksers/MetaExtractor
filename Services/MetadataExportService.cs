@@ -891,21 +891,33 @@ namespace MetaExtractor.Services
 
                     if (config.DryRun)
                     {
-                        Plugin.CurrentProgress.AddLogEntry($"[DRY RUN] Subtitle: {item.Name} - {fileName} → {targetFile}");
+                        var dryRunAction = config.MoveSubtitles ? "[DRY RUN] Subtitle (move)" : "[DRY RUN] Subtitle";
+                        Plugin.CurrentProgress.AddLogEntry($"{dryRunAction}: {item.Name} - {fileName} → {targetFile}");
                         exported = true;
                         continue;
                     }
 
                     try
                     {
-                        File.Copy(file, targetFile, config.OverwriteArtwork);
-                        Plugin.CurrentProgress.AddLogEntry($"Subtitle: {item.Name} - {fileName} → {targetFile}");
-                        _logger.Debug($"Exported subtitle {fileName} for {item.Name} to {targetFile}");
+                        if (config.MoveSubtitles)
+                        {
+                            if (File.Exists(targetFile))
+                                File.Delete(targetFile);
+                            File.Move(file, targetFile);
+                            Plugin.CurrentProgress.AddLogEntry($"Subtitle (moved): {item.Name} - {fileName} → {targetFile}");
+                            _logger.Debug($"Moved subtitle {fileName} for {item.Name} to {targetFile}");
+                        }
+                        else
+                        {
+                            File.Copy(file, targetFile, config.OverwriteArtwork);
+                            Plugin.CurrentProgress.AddLogEntry($"Subtitle: {item.Name} - {fileName} → {targetFile}");
+                            _logger.Debug($"Exported subtitle {fileName} for {item.Name} to {targetFile}");
+                        }
                         exported = true;
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn($"Failed to copy subtitle {fileName} for {item.Name}: {ex.Message}");
+                        _logger.Warn($"Failed to {(config.MoveSubtitles ? "move" : "copy")} subtitle {fileName} for {item.Name}: {ex.Message}");
                     }
                 }
             }

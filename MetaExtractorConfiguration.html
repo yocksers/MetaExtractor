@@ -440,6 +440,13 @@
                             </label>
                             <div class="fieldDescription">When enabled, external subtitle files (.srt, .ass, .ssa, .sbv, .ttml, .dfxp) found alongside the video file will be copied to the custom export destination. Requires "Export to custom folder" to be enabled.</div>
                         </div>
+                        <div class="checkboxContainer" id="moveSubtitlesContainer" style="display: none; margin-top: 0.5em; margin-left: 2em;">
+                            <label class="emby-checkbox-label">
+                                <input is="emby-checkbox" type="checkbox" id="moveSubtitles" name="moveSubtitles" />
+                                <span>Move subtitles instead of copy</span>
+                            </label>
+                            <div class="fieldDescription" style="color: #ff9800;">Warning: The original subtitle files will be permanently deleted from the source folder after being moved.</div>
+                        </div>
                     </div>
                 </div>
 
