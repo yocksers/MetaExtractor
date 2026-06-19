@@ -436,16 +436,9 @@
                         <div class="checkboxContainer">
                             <label class="emby-checkbox-label">
                                 <input is="emby-checkbox" type="checkbox" id="exportSubtitles" name="exportSubtitles" />
-                                <span>Export External Subtitles</span>
+                                <span>Extract Subtitles</span>
                             </label>
-                            <div class="fieldDescription">When enabled, external subtitle files (.srt, .ass, .ssa, .sbv, .ttml, .dfxp) found alongside the video file will be copied to the custom export destination. Requires "Export to custom folder" to be enabled.</div>
-                        </div>
-                        <div class="checkboxContainer" id="moveSubtitlesContainer" style="display: none; margin-top: 0.5em; margin-left: 2em;">
-                            <label class="emby-checkbox-label">
-                                <input is="emby-checkbox" type="checkbox" id="moveSubtitles" name="moveSubtitles" />
-                                <span>Move subtitles instead of copy</span>
-                            </label>
-                            <div class="fieldDescription" style="color: #ff9800;">Warning: The original subtitle files will be permanently deleted from the source folder after being moved.</div>
+                            <div class="fieldDescription">When enabled, subtitle files tracked by Emby are copied to the media folder alongside the video, or to the custom export destination if that option is enabled. This includes subtitles stored in Emby's internal metadata folder rather than next to the media file, which is the primary use case — identical in workflow to artwork extraction.</div>
                         </div>
                     </div>
                 </div>

@@ -48,7 +48,6 @@ define([
             view.querySelector('#exportArtwork').checked = self.config.ExportArtwork !== false;
             view.querySelector('#exportNfo').checked = self.config.ExportNfo !== false;
             view.querySelector('#exportSubtitles').checked = self.config.ExportSubtitles !== false;
-            view.querySelector('#moveSubtitles').checked = self.config.MoveSubtitles === true;
             view.querySelector('#exportCollections').checked = self.config.ExportCollections !== false;
             view.querySelector('#overwriteNfo').checked = self.config.OverwriteNfo !== false;
             view.querySelector('#overwriteArtwork').checked = self.config.OverwriteArtwork !== false;
@@ -58,7 +57,6 @@ define([
             view.querySelector('#useHardlinks').checked = self.config.UseHardlinks !== false; 
             
             self.toggleCustomPathInput();
-            self.toggleMoveSubtitles();
             
             view.querySelector('#exportAllArtworkTypes').checked = self.config.ExportAllArtworkTypes === true;
             view.querySelector('#exportPoster').checked = self.config.ExportPoster !== false;
@@ -278,12 +276,6 @@ define([
         }
     };
 
-    View.prototype.toggleMoveSubtitles = function () {
-        var exportSubtitles = view.querySelector('#exportSubtitles').checked;
-        var moveContainer = view.querySelector('#moveSubtitlesContainer');
-        moveContainer.style.display = exportSubtitles ? 'block' : 'none';
-    };
-
     View.prototype.toggleCustomArtworkNames = function () {
         var useCustomNames = view.querySelector('#chkUseCustomArtworkNames').checked;
         var namesContainer = view.querySelector('#customArtworkNamesContainer');
@@ -322,7 +314,6 @@ define([
         self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
         self.config.ExportNfo = view.querySelector('#exportNfo').checked;
         self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
-        self.config.MoveSubtitles = view.querySelector('#moveSubtitles').checked;
         self.config.ExportCollections = view.querySelector('#exportCollections').checked;
         self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
         self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;
@@ -455,7 +446,6 @@ define([
         self.config.ExportArtwork = view.querySelector('#exportArtwork').checked;
         self.config.ExportNfo = view.querySelector('#exportNfo').checked;
         self.config.ExportSubtitles = view.querySelector('#exportSubtitles').checked;
-        self.config.MoveSubtitles = view.querySelector('#moveSubtitles').checked;
         self.config.ExportCollections = view.querySelector('#exportCollections').checked;
         self.config.OverwriteNfo = view.querySelector('#overwriteNfo').checked;
         self.config.OverwriteArtwork = view.querySelector('#overwriteArtwork').checked;
@@ -633,10 +623,6 @@ define([
         // Custom export path toggle
         view.querySelector('#useCustomExportPath').addEventListener('change', function () {
             instance.toggleCustomPathInput();
-        });
-
-        view.querySelector('#exportSubtitles').addEventListener('change', function () {
-            instance.toggleMoveSubtitles();
         });
 
         view.querySelector('#chkUseCustomArtworkNames').addEventListener('change', function () {

@@ -70,10 +70,10 @@ namespace MetaExtractor.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!config.ExportNfo && !config.ExportArtwork)
+                if (!config.ExportNfo && !config.ExportArtwork && !config.ExportSubtitles)
                 {
                     result.Success = false;
-                    result.Message = "No export options enabled. Please enable NFO export and/or artwork export in settings.";
+                    result.Message = "No export options enabled. Please enable NFO export, artwork export, and/or subtitle export in settings.";
                     return result;
                 }
                 
@@ -468,7 +468,7 @@ namespace MetaExtractor.Services
                 exported |= ExportNfo(item, directory, config, cancellationToken);
             }
 
-            if (config.ExportSubtitles && config.UseCustomExportPath)
+            if (config.ExportSubtitles)
             {
                 exported |= ExportSubtitles(item, directory, config, cancellationToken);
             }
@@ -840,46 +840,97 @@ namespace MetaExtractor.Services
             if (!(item is Movie || item is Episode))
                 return false;
 
-            var itemPath = item.Path;
-            if (string.IsNullOrEmpty(itemPath))
-                return false;
-
-            itemPath = itemPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
-            itemPath = itemPath.TrimEnd(Path.DirectorySeparatorChar);
-
-            var sourceDirectory = Path.GetDirectoryName(itemPath);
-            if (string.IsNullOrEmpty(sourceDirectory) || !Directory.Exists(sourceDirectory))
-                return false;
-
-            var videoBaseName = Path.GetFileNameWithoutExtension(itemPath);
-            if (string.IsNullOrEmpty(videoBaseName))
-                return false;
+            var exported = false;
 
             var subtitleExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                { ".srt", ".ass", ".ssa", ".sbv", ".ttml", ".dfxp" };
+                { ".srt", ".ass", ".ssa", ".sub", ".sbv", ".ttml", ".dfxp", ".vtt" };
 
-            var exported = false;
+            var candidates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // fileName -> sourcePath
 
             try
             {
-                foreach (var file in Directory.GetFiles(sourceDirectory))
+                // --- Source 1: streams registered in the Emby database ---
+                var streams = _itemRepository.GetMediaStreams(new MediaStreamQuery
+                {
+                    ItemId = item.InternalId,
+                    Type = MediaStreamType.Subtitle
+                }, cancellationToken);
+
+                _logger.Debug($"[Subtitles] {item.Name}: {streams.Count} subtitle stream(s) found in DB");
+
+                foreach (var stream in streams)
+                {
+                    _logger.Debug($"[Subtitles] Stream index={stream.Index} IsExternal={stream.IsExternal} Path={stream.Path ?? "(null)"}");
+
+                    if (string.IsNullOrEmpty(stream.Path))
+                        continue;
+
+                    var sourcePath = stream.Path
+                        .Replace('\\', Path.DirectorySeparatorChar)
+                        .Replace('/', Path.DirectorySeparatorChar);
+
+                    if (!File.Exists(sourcePath))
+                    {
+                        _logger.Debug($"[Subtitles] Path does not exist on disk: {sourcePath}");
+                        continue;
+                    }
+
+                    var fileName = Path.GetFileName(sourcePath);
+                    if (!candidates.ContainsKey(fileName))
+                        candidates[fileName] = sourcePath;
+                }
+
+                // --- Source 2: item metadata folder (Emby stores server-managed subs here) ---
+                var metadataFolderCandidates = new List<string>();
+
+                // Try the item's own InternalMetadataPath if it exposes one
+                try
+                {
+                    var metaProp = item.GetType().GetProperty("InternalMetadataPath") ??
+                                   item.GetType().GetProperty("MetadataPath");
+                    if (metaProp != null)
+                    {
+                        var metaPath = metaProp.GetValue(item) as string;
+                        if (!string.IsNullOrEmpty(metaPath) && Directory.Exists(metaPath))
+                            metadataFolderCandidates.Add(metaPath);
+                    }
+                }
+                catch { }
+
+                // Also try the conventional Emby metadata library folder layout
+                var idStr = item.Id.ToString("N");
+                var libMetaPath = Path.Combine(_appPaths.DataPath, "metadata", "library", idStr.Substring(0, 2), idStr);
+                if (Directory.Exists(libMetaPath))
+                    metadataFolderCandidates.Add(libMetaPath);
+
+                foreach (var folder in metadataFolderCandidates)
+                {
+                    _logger.Debug($"[Subtitles] Scanning metadata folder: {folder}");
+                    foreach (var file in Directory.GetFiles(folder))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!subtitleExtensions.Contains(Path.GetExtension(file)))
+                            continue;
+                        var fileName = Path.GetFileName(file);
+                        if (!candidates.ContainsKey(fileName))
+                        {
+                            _logger.Debug($"[Subtitles] Found in metadata folder: {file}");
+                            candidates[fileName] = file;
+                        }
+                    }
+                }
+
+                _logger.Debug($"[Subtitles] {item.Name}: {candidates.Count} subtitle file(s) to process");
+
+                foreach (var kvp in candidates)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var ext = Path.GetExtension(file);
-                    if (!subtitleExtensions.Contains(ext))
-                        continue;
-
-                    var fileBaseName = Path.GetFileNameWithoutExtension(file);
-                    if (!fileBaseName.Equals(videoBaseName, StringComparison.OrdinalIgnoreCase) &&
-                        !fileBaseName.StartsWith(videoBaseName + ".", StringComparison.OrdinalIgnoreCase) &&
-                        !fileBaseName.StartsWith(videoBaseName + "_", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    var fileName = Path.GetFileName(file);
+                    var fileName = kvp.Key;
+                    var sourcePath = kvp.Value;
                     var targetFile = Path.Combine(directory, fileName);
 
-                    if (string.Equals(file, targetFile, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(sourcePath, targetFile, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (File.Exists(targetFile) && !config.OverwriteArtwork)
@@ -891,33 +942,44 @@ namespace MetaExtractor.Services
 
                     if (config.DryRun)
                     {
-                        var dryRunAction = config.MoveSubtitles ? "[DRY RUN] Subtitle (move)" : "[DRY RUN] Subtitle";
-                        Plugin.CurrentProgress.AddLogEntry($"{dryRunAction}: {item.Name} - {fileName} → {targetFile}");
+                        Plugin.CurrentProgress.AddLogEntry($"[DRY RUN] Subtitle: {item.Name} - {fileName} → {targetFile}");
                         exported = true;
                         continue;
                     }
 
                     try
                     {
-                        if (config.MoveSubtitles)
+                        if (config.UseHardlinks && IsWindows())
                         {
-                            if (File.Exists(targetFile))
-                                File.Delete(targetFile);
-                            File.Move(file, targetFile);
-                            Plugin.CurrentProgress.AddLogEntry($"Subtitle (moved): {item.Name} - {fileName} → {targetFile}");
-                            _logger.Debug($"Moved subtitle {fileName} for {item.Name} to {targetFile}");
+                            try
+                            {
+                                if (File.Exists(targetFile))
+                                    File.Delete(targetFile);
+
+                                if (CreateHardLink(targetFile, sourcePath, IntPtr.Zero))
+                                {
+                                    Plugin.CurrentProgress.AddLogEntry($"Subtitle (hardlink): {item.Name} - {fileName} → {targetFile}");
+                                    _logger.Debug($"Created hardlink for subtitle {fileName} for {item.Name} to {targetFile}");
+                                    exported = true;
+                                    continue;
+                                }
+
+                                _logger.Debug($"Hardlink creation failed for subtitle, falling back to copy: {targetFile}");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Debug($"Hardlink creation failed for subtitle ({ex.Message}), falling back to copy: {targetFile}");
+                            }
                         }
-                        else
-                        {
-                            File.Copy(file, targetFile, config.OverwriteArtwork);
-                            Plugin.CurrentProgress.AddLogEntry($"Subtitle: {item.Name} - {fileName} → {targetFile}");
-                            _logger.Debug($"Exported subtitle {fileName} for {item.Name} to {targetFile}");
-                        }
+
+                        File.Copy(sourcePath, targetFile, config.OverwriteArtwork);
+                        Plugin.CurrentProgress.AddLogEntry($"Subtitle: {item.Name} - {fileName} → {targetFile}");
+                        _logger.Debug($"Exported subtitle {fileName} for {item.Name} to {targetFile}");
                         exported = true;
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn($"Failed to {(config.MoveSubtitles ? "move" : "copy")} subtitle {fileName} for {item.Name}: {ex.Message}");
+                        _logger.Warn($"Failed to copy subtitle {fileName} for {item.Name}: {ex.Message}");
                     }
                 }
             }

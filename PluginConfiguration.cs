@@ -17,7 +17,6 @@ namespace MetaExtractor
         public bool ExportArtwork { get; set; } = true;
         public bool ExportNfo { get; set; } = true;
         public bool ExportSubtitles { get; set; } = true;
-        public bool MoveSubtitles { get; set; } = false;
         
         public bool ExportCollections { get; set; } = true;
         
