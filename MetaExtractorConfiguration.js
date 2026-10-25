@@ -219,12 +219,14 @@ define([
             SortBy: 'SortName'
         }).then(function (result) {
             itemList.innerHTML = '';
-            
+            view.querySelector('#itemFilterBox').value = '';
+
             result.Items.forEach(function (item) {
                 var isSelected = self.selectedItems.indexOf(item.Id) !== -1;
-                
+
                 var itemDiv = document.createElement('div');
                 itemDiv.className = 'item-entry';
+                itemDiv.setAttribute('data-name', (item.Name || '').toLowerCase());
                 itemDiv.innerHTML = 
                     '<label class="emby-checkbox-label">' +
                     '<input is="emby-checkbox" type="checkbox" data-item-id="' + item.Id + '" ' + 
@@ -246,6 +248,15 @@ define([
             console.error('Error loading items:', error);
             loading.hide();
             Dashboard.alert('Failed to load items');
+        });
+    };
+
+    View.prototype.filterItems = function (searchTerm) {
+        var term = (searchTerm || '').trim().toLowerCase();
+
+        view.querySelectorAll('#itemList .item-entry').forEach(function (itemDiv) {
+            var name = itemDiv.getAttribute('data-name') || '';
+            itemDiv.style.display = !term || name.indexOf(term) !== -1 ? '' : 'none';
         });
     };
 
@@ -589,6 +600,10 @@ define([
 
         view.querySelector('#browseItemsBtn').addEventListener('click', function () {
             instance.browseItems();
+        });
+
+        view.querySelector('#itemFilterBox').addEventListener('input', function () {
+            instance.filterItems(this.value);
         });
         
         view.querySelectorAll('.tab-button').forEach(function (button) {

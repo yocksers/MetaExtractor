@@ -1150,7 +1150,7 @@ namespace MetaExtractor.Services
 
                 if (config.NfoIncludeDates)
                 {
-                    writer.WriteElementString("dateadded", item.DateCreated.ToString("yyyy-MM-dd HH:mm:ss"));
+                    writer.WriteElementString("dateadded", item.DateCreated.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
                 }
 
                 if (config.NfoIncludeTitles)

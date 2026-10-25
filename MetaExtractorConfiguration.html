@@ -56,14 +56,14 @@
             padding: 1em;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 4px;
-            max-height: 400px;
-            overflow-y: auto;
         }
 
         .item-list {
             display: flex;
             flex-direction: column;
             gap: 0.3em;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .item-entry {
@@ -351,6 +351,9 @@
                             <div class="item-browser-header">
                                 <span>Select items to export:</span>
                                 <span class="selected-count"><span id="selectedItemCount">0</span> items selected</span>
+                            </div>
+                            <div class="inputContainer" style="margin-bottom: 0.5em;">
+                                <input is="emby-input" type="search" id="itemFilterBox" placeholder="Filter by name..." autocomplete="off" />
                             </div>
                             <div id="itemList" class="item-list">
                             </div>
